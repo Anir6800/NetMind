@@ -1,4 +1,5 @@
 import json
+from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy.orm import Session
@@ -14,8 +15,8 @@ class NetworksService:
     def list(self):
         return self.repository.list()
 
-    def topology(self, network_id: int) -> Topology | None:
+    def topology(self, network_id: int) -> tuple[Topology, datetime] | None:
         if not self.repository.get(network_id):
             return None
         path = Path(__file__).parents[3] / "data/topologies/demo_six_nodes.json"
-        return Topology.model_validate(json.loads(path.read_text()))
+        return Topology.model_validate(json.loads(path.read_text())), datetime.fromtimestamp(path.stat().st_mtime, UTC)

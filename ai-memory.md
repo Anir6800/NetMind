@@ -149,3 +149,10 @@
 - Started: 2026-10-22
 - Scope: typed, paginated API routers with repository services and OpenAPI contract coverage.
 - Verification: isolated API tests cover valid data, 404, 422, and OpenAPI pagination contract; backend pytest (16 passed) and ruff passed.
+
+## NM-D3-S07 — Render real topology in React Flow
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: API-driven React Flow topology, selected-device inspector, and explicit simulated source/update labels.
+- Verification: topology API contract includes source/update metadata; backend pytest (16 passed), ruff, and frontend Vite build passed.

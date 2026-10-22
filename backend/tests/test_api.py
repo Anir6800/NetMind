@@ -28,7 +28,9 @@ def client() -> TestClient:
 def test_network_and_incident_endpoints_return_typed_data() -> None:
     with client() as api:
         assert api.get("/networks").json() == [{"id": 1, "name": "demo", "topology_version": "v1"}]
-        assert api.get("/networks/1/topology").json()["version"] == "v1"
+        topology = api.get("/networks/1/topology").json()
+        assert topology["topology"]["version"] == "v1"
+        assert topology["source"] == "SIMULATED"
         assert api.get("/incidents?limit=1").json()[0]["title"] == "Demo incident"
 
 

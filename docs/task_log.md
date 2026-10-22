@@ -24,3 +24,4 @@
 | NM-D3-S04 — Implement telemetry sampling service | Complete | Bounded RTT/loss/jitter/throughput/interface probes and source-labeled freshness/EWMA/ring store tested |
 | NM-D3-S05 — Persist networks/incidents in PostgreSQL | Complete | Constrained relational schema, repositories, isolated CRUD, and clean Alembic migration tests passed |
 | NM-D3-S06 — Add network and incident REST endpoints | Complete | Typed repository-backed network/incidents APIs with filters, pagination, 404/422, and OpenAPI contract tests passed |
+| NM-D3-S07 — Render real topology in React Flow | Complete | API-refreshed React Flow canvas, selected-device inspector, and source/update labels added; backend/frontend checks passed |
