@@ -11,8 +11,10 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://netmind_app:netmind_app_local@127.0.0.1:5432/netmind"
     auth_allow_unsigned: bool = False
     nvidia_api_key: str | None = Field(default=None, validation_alias="NVIDIA_API_KEY")
-    nvidia_model: str = "meta/muse-glimmer-30b"
+    nvidia_model: str = "nvidia/nemotron-3-ultra-550b-a55b"
+    nvidia_fallback_model: str = "meta/muse-glimmer-30b"
     nvidia_timeout_s: float = Field(default=5, gt=0, le=30)
+    nvidia_rate_limit_rpm: int = Field(default=40, ge=1, le=40)
     nvidia_failure_threshold: int = Field(default=3, ge=1, le=10)
     nvidia_fixture_mode: bool = False
 

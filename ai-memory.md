@@ -186,5 +186,6 @@
 - Status: COMPLETE
 - Started: 2026-10-22
 - Scope: server-only optional diagnosis adapter with deterministic offline fixture, resilience controls, and redacted metadata logging.
-- Observed: plan amended to NVIDIA's OpenAI-compatible API. `NVIDIA_API_KEY` loads only from the ignored root `.env`; missing key, fixture mode, requests failures, and an open circuit return a clearly labelled `OFFLINE_FIXTURE` diagnosis.
-- Verification: backend pytest (33 passed), simulation-controller pytest (15 passed), repository ruff, and frontend production build passed. No NVIDIA request was sent during verification; `.env` is confirmed ignored.
+- Observed: plan amended to NVIDIA's OpenAI-compatible API. `NVIDIA_API_KEY` loads only from the ignored root `.env`; Nemotron is primary and Meta Muse fallback; the runtime enforces 40 RPM. Missing key, fixture mode, requests failures, and an open circuit return a clearly labelled `OFFLINE_FIXTURE` diagnosis.
+- Verification: live JSON smoke tests succeeded for Nemotron (1.27 s) and Meta Muse (3.79 s); the adapter returned a structured Nemotron diagnosis in 8.94 s. Backend pytest (35 passed) and ruff passed. The key was not printed or committed.
+- Amendment: NVIDIA Nemotron is requested as primary with Meta Muse as fallback, a 40-RPM client-side limit, and authorised live provider checks when a local key is present.
