@@ -121,3 +121,10 @@
 - Started: 2026-10-22
 - Scope: token-authenticated loopback JSON-RPC controller, allowlisted topology-validated commands, and subprocess safety checks.
 - Verification: allowlist/idempotence/unknown-interface and no-shell tests passed; combined pytest (12 passed) and ruff passed.
+
+## NM-D3-S03 — Implement simulation fallback mode
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: NetworkX simulated controller matching the privileged adapter contract and source-labeled path telemetry.
+- Verification: shared controller contract and path-failure tests passed; pytest (15 passed), ruff, and frontend build passed; shell displays SIMULATED.

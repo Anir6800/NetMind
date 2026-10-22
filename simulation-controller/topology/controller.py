@@ -19,12 +19,23 @@ class Controller:
 
     def execute(self, verb: str, params: dict) -> dict:
         command = self.allowlist.validate(verb, params)
-        key = (command.verb, json.dumps(command.params, sort_keys=True))
-        if key in self.state:
+        key = self._state_key(command)
+        if self.state.get(key) == command.params:
             return {"ok": True, "changed": False}
         self._apply(command)
         self.state[key] = command.params
         return {"ok": True, "changed": True}
+
+    def telemetry(self) -> dict:
+        return {"source": "MEASURED", "paths": {}}
+
+    @staticmethod
+    def _state_key(command: Command) -> tuple[str, str]:
+        if command.verb == "set_link_state":
+            return command.verb, command.params["link_id"]
+        if command.verb in {"set_netem", "clear_netem"}:
+            return "netem", f"{command.params['node_id']}:{command.params['interface_id']}"
+        return command.verb, f"{command.params['node_id']}:{command.params['destination']}"
 
     def _apply(self, command: Command) -> None:
         # shortcut: Mininet command integration awaits a Linux CAP_NET_ADMIN host; replace with typed adapters then.
