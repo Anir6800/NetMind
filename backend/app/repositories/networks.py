@@ -22,3 +22,6 @@ class NetworksRepository:
 
     def list(self) -> list[Network]:
         return list(self.session.scalars(select(Network).order_by(Network.id)))
+
+    def get(self, network_id: int) -> Network | None:
+        return self.session.get(Network, network_id)

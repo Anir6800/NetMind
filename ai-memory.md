@@ -142,3 +142,10 @@
 - Started: 2026-10-22
 - Scope: constrained relational persistence, focused repositories, and clean-database migration/CRUD tests.
 - Verification: isolated CRUD and empty-database migration tests passed; pytest (13 passed), ruff, and offline Alembic SQL checks passed.
+
+## NM-D3-S06 — Add network and incident REST endpoints
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: typed, paginated API routers with repository services and OpenAPI contract coverage.
+- Verification: isolated API tests cover valid data, 404, 422, and OpenAPI pagination contract; backend pytest (16 passed) and ruff passed.

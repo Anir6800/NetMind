@@ -16,3 +16,14 @@ class IncidentsRepository:
 
     def list_open(self, network_id: int) -> list[Incident]:
         return list(self.session.scalars(select(Incident).where(Incident.network_id == network_id, Incident.state != "resolved").order_by(Incident.created_at.desc())))
+
+    def list(self, network_id: int | None, state: str | None, limit: int, offset: int) -> list[Incident]:
+        statement = select(Incident).order_by(Incident.created_at.desc()).offset(offset).limit(limit)
+        if network_id is not None:
+            statement = statement.where(Incident.network_id == network_id)
+        if state is not None:
+            statement = statement.where(Incident.state == state)
+        return list(self.session.scalars(statement))
+
+    def get(self, incident_id: int) -> Incident | None:
+        return self.session.get(Incident, incident_id)
