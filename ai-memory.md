@@ -185,6 +185,6 @@
 
 - Status: COMPLETE
 - Started: 2026-10-22
-- Scope: server-only Gemini diagnosis adapter with deterministic offline fixture, resilience controls, and redacted metadata logging.
-- Observed: `GEMINI_API_KEY` is server-only; missing key, fixture mode, requests failures, and an open circuit return a clearly labelled `OFFLINE_FIXTURE` diagnosis. Online Gemini is optional and separate from local runtime.
-- Verification: backend pytest (33 passed), simulation-controller pytest (15 passed), repository ruff, and frontend production build passed. No Gemini request was sent during verification.
+- Scope: server-only optional diagnosis adapter with deterministic offline fixture, resilience controls, and redacted metadata logging.
+- Observed: plan amended to NVIDIA's OpenAI-compatible API. `NVIDIA_API_KEY` loads only from the ignored root `.env`; missing key, fixture mode, requests failures, and an open circuit return a clearly labelled `OFFLINE_FIXTURE` diagnosis.
+- Verification: backend pytest (33 passed), simulation-controller pytest (15 passed), repository ruff, and frontend production build passed. No NVIDIA request was sent during verification; `.env` is confirmed ignored.

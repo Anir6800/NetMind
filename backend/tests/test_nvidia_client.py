@@ -1,17 +1,17 @@
 from app.core.config import Settings
-from app.integrations.gemini_client import Diagnosis, GeminiClient
+from app.integrations.nvidia_client import Diagnosis, NvidiaClient
 
 
 def test_missing_key_returns_labelled_offline_diagnosis() -> None:
-    diagnosis = GeminiClient(Settings(gemini_api_key=None)).diagnose({"loss_pct": 20})
+    diagnosis = NvidiaClient(Settings(nvidia_api_key=None)).diagnose({"loss_pct": 20})
 
     assert diagnosis.source == "OFFLINE_FIXTURE"
     assert diagnosis.offline is True
-    assert "Gemini was not used" in diagnosis.summary
+    assert "NVIDIA was not used" in diagnosis.summary
 
 
 def test_fixture_mode_is_deterministic() -> None:
-    client = GeminiClient(Settings(gemini_fixture_mode=True))
+    client = NvidiaClient(Settings(nvidia_fixture_mode=True))
     first = client.diagnose({"rtt_ms": 100})
     second = client.diagnose({"rtt_ms": 100})
 
@@ -26,7 +26,7 @@ def test_retries_then_opens_circuit_without_exposing_key(caplog) -> None:
         calls += 1
         raise TimeoutError
 
-    client = GeminiClient(Settings(gemini_api_key="secret", gemini_failure_threshold=2), requester=fail)
+    client = NvidiaClient(Settings(nvidia_api_key="secret", nvidia_failure_threshold=2), requester=fail)
     client.diagnose({})
     client.diagnose({})
     diagnosis = client.diagnose({})

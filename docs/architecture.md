@@ -6,4 +6,4 @@ The repository currently contains a local capability probe and documentation onl
 host OS/tools/privileges -> scripts/probe_capabilities.py -> capability matrix -> MININET or SIMULATED
 ```
 
-No application backend, cloud hosting configuration, or online Gemini/Stitch runtime dependency is present yet. Future services must consume the probe result rather than a manually maintained mode flag.
+No application cloud hosting configuration exists. Stitch remains design-time only; the optional NVIDIA diagnosis provider is server-only, reads its key from ignored local configuration, and falls back deterministically when unavailable. Future services must consume the probe result rather than a manually maintained mode flag.
