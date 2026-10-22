@@ -29,3 +29,4 @@
 | NM-D4-S01 — Implement deterministic incident rules | Complete | Debounced/hysteretic deterministic detector, topology correlation, flap damping, severity scores, fully tested incident state transitions, and backend/simulation/frontend checks passed |
 | NM-D4-S02 — Build incident timeline and audit log | Complete | Immutable canonical JSON SHA-256 hash chain, ordered incident event timeline, migration backfill, and tested tamper-detecting `/audit/verify` endpoint |
 | NM-D4-S03 — Create Gemini client adapter with fallback | Complete | Plan amended to NVIDIA: Nemotron primary, Meta fallback, 40-RPM limit, structured live tests, timeout/retries/circuit breaker, redacted metadata, ignored `.env`, and offline fixture |
+| NM-D4-S04 — Define structured AI diagnosis schema | Complete | Deterministic probe-path set cover clears passed links, strict evidence/link/action grounding rejects free-form commands, and typed localizer agreement is ready for an API/UI consumer |

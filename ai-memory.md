@@ -188,4 +188,12 @@
 - Scope: server-only optional diagnosis adapter with deterministic offline fixture, resilience controls, and redacted metadata logging.
 - Observed: plan amended to NVIDIA's OpenAI-compatible API. `NVIDIA_API_KEY` loads only from the ignored root `.env`; Nemotron is primary and Meta Muse fallback; the runtime enforces 40 RPM. Missing key, fixture mode, requests failures, and an open circuit return a clearly labelled `OFFLINE_FIXTURE` diagnosis.
 - Verification: live JSON smoke tests succeeded for Nemotron (1.27 s) and Meta Muse (3.79 s); the adapter returned a structured Nemotron diagnosis in 8.94 s. Backend pytest (35 passed) and ruff passed. The key was not printed or committed.
+
+## NM-D4-S04 — Define structured AI diagnosis schema
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: grounded diagnosis validation, deterministic probe-path fault localization, and provider explanation constrained to localized evidence.
+- Observed: passed probe links are cleared before deterministic set-cover selection; diagnosis evidence, candidate links, and recommended action references are validated against server-provided sets. NVIDIA is constrained to explain the provider context, and typed `localizer_agreement` is available for the next API/UI task.
+- Verification: malformed JSON/schema, unknown evidence, non-allowlisted actions, free-form commands, and links outside localization are rejected. Backend pytest (41 passed), simulation-controller pytest (15 passed), repository ruff, and frontend build passed.
 - Amendment: NVIDIA Nemotron is requested as primary with Meta Muse as fallback, a 40-RPM client-side limit, and authorised live provider checks when a local key is present.
