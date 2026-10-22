@@ -78,3 +78,28 @@
 - Started: 2026-10-22
 - Scope: canonical operations overview prompt with service health, live incident count contract, and empty/loading states.
 - Verification: Stitch generation session completed; prompt documents data-bound health/incidents and three required states; frontend Vite build passed.
+
+## NM-D2-S04 — Design Network Topology in Stitch
+
+- Status: IN_PROGRESS
+- Started: 2026-10-22
+
+## NM-D2-S05 — Design Incident Center and Detail in Stitch
+
+- Status: IN_PROGRESS
+- Started: 2026-10-22
+
+## NM-D2-S06 — Design AI Copilot and Recovery Center in Stitch
+
+- Status: IN_PROGRESS
+- Started: 2026-10-22
+
+## NM-D2-S07 — Implement local responsive shell
+
+- Status: IN_PROGRESS
+- Started: 2026-10-22
+
+## NM-D2-S08 — Implement MVP route skeletons
+
+- Status: IN_PROGRESS
+- Started: 2026-10-22
