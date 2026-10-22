@@ -1,21 +1,25 @@
 from fastapi.testclient import TestClient
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.db.models import Base
 from app.db.session import get_session
 from app.main import app
+from app.repositories.audit import AuditRepository
 from app.repositories.incidents import IncidentsRepository
 from app.repositories.networks import NetworksRepository
 
 
-def client() -> TestClient:
+def client(tamper_audit: bool = False) -> TestClient:
     engine = create_engine("sqlite://", connect_args={"check_same_thread": False}, poolclass=StaticPool)
     Base.metadata.create_all(engine)
     session = Session(engine)
     network = NetworksRepository(session).create("demo", "v1")
     IncidentsRepository(session).create(network.id, "Demo incident", "warning")
+    if tamper_audit:
+        event = AuditRepository(session).append("detection", {"incident_id": 1})
+        session.execute(text("UPDATE audit_events SET payload = :payload WHERE id = :id"), {"payload": '{"incident_id":999}', "id": event.id})
     session.commit()
 
     def override_session():
@@ -39,6 +43,16 @@ def test_endpoints_return_404_and_422() -> None:
         assert api.get("/networks/99/topology").status_code == 404
         assert api.get("/incidents/99").status_code == 404
         assert api.get("/incidents?limit=0").status_code == 422
+
+
+def test_audit_verify_endpoint_returns_chain_status() -> None:
+    with client() as api:
+        assert api.get("/audit/verify").json() == {"valid": True, "invalid_event_id": None}
+
+
+def test_audit_verify_endpoint_detects_tampering() -> None:
+    with client(tamper_audit=True) as api:
+        assert api.get("/audit/verify").json() == {"valid": False, "invalid_event_id": 1}
 
 
 def test_openapi_contract_declares_typed_paginated_routes() -> None:

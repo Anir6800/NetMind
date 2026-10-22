@@ -27,3 +27,4 @@
 | NM-D3-S07 — Render real topology in React Flow | Complete | API-refreshed React Flow canvas, selected-device inspector, and source/update labels added; backend/frontend checks passed |
 | NM-D3-S08 — Create controllable scenario injector | Complete | Demo-only deterministic scenarios record ground truth; fallback link-down produced a reproducible SIMULATED candidate; backend/simulation tests, ruff, and frontend build passed |
 | NM-D4-S01 — Implement deterministic incident rules | Complete | Debounced/hysteretic deterministic detector, topology correlation, flap damping, severity scores, fully tested incident state transitions, and backend/simulation/frontend checks passed |
+| NM-D4-S02 — Build incident timeline and audit log | Complete | Immutable canonical JSON SHA-256 hash chain, ordered incident event timeline, migration backfill, and tested tamper-detecting `/audit/verify` endpoint |

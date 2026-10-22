@@ -172,3 +172,11 @@
 - Scope: deterministic telemetry incident detection, topology correlation, deduplication, and a tested incident state machine.
 - Observed: three consecutive breaches open link-loss, latency, or unreachable-host incidents; clear thresholds resolve after three samples; active link failures suppress dependent host symptoms; recent resolutions are flap-damped.
 - Verification: backend pytest (26 passed), simulation-controller pytest (15 passed), repository ruff, and frontend production build passed.
+
+## NM-D4-S02 — Build incident timeline and audit log
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: append-only hash-chained provenance events, incident timeline ordering, and tamper verification endpoint.
+- Observed: every timeline append is canonical JSON hash-chained from the prior event; the verifier reports the first invalid event ID after payload tampering.
+- Verification: backend pytest (30 passed, including migration and endpoint tampering), repository ruff, simulation-controller pytest (15 passed), and frontend production build passed.
