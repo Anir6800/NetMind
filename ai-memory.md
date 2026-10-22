@@ -156,3 +156,11 @@
 - Started: 2026-10-22
 - Scope: API-driven React Flow topology, selected-device inspector, and explicit simulated source/update labels.
 - Verification: topology API contract includes source/update metadata; backend pytest (16 passed), ruff, and frontend Vite build passed.
+
+## NM-D3-S08 — Create controllable scenario injector
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: deterministic, allowlisted demo-topology fault injection with ground-truth records and an accurate local Lab view.
+- Observed: `link_down`, `high_latency`, `packet_loss`, `congestion`, and `node_down` are deterministic, demo-topology-only scenarios; every start/stop retains a fault ID, type, location, seed, and wall/monotonic start/end times.
+- Verification: backend pytest (15 passed), simulation-controller pytest (15 passed), repository ruff passed, and frontend Vite build passed. The fallback link-down test produced a reproducible `SIMULATED` incident candidate and an unreachable path until stopped.
