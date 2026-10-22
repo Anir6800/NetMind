@@ -21,3 +21,4 @@
 | NM-D3-S01 — Implement typed network topology schema | Complete | Versioned six-node topology/addressing/baseline paths validated; invalid graph tests, pytest, and ruff passed |
 | NM-D3-S02 — Build safe Mininet controller adapter | Complete | Token-gated loopback JSON-RPC, strict allowlist, topology validation, idempotence, and no-shell guard tested |
 | NM-D3-S03 — Implement simulation fallback mode | Complete | NetworkX fallback shares controller contract, labels telemetry source, recomputes failed paths, and exposes SIMULATED badge |
+| NM-D3-S04 — Implement telemetry sampling service | Complete | Bounded RTT/loss/jitter/throughput/interface probes and source-labeled freshness/EWMA/ring store tested |

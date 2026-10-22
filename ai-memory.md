@@ -128,3 +128,10 @@
 - Started: 2026-10-22
 - Scope: NetworkX simulated controller matching the privileged adapter contract and source-labeled path telemetry.
 - Verification: shared controller contract and path-failure tests passed; pytest (15 passed), ruff, and frontend build passed; shell displays SIMULATED.
+
+## NM-D3-S04 — Implement telemetry sampling service
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: bounded raw probes, timestamped source-labeled samples, and backend freshness/smoothing/retention.
+- Verification: fixture and timeout probes, unknown/stale TTL, EWMA, and ring retention tests passed; combined pytest (19 passed) and ruff passed.
