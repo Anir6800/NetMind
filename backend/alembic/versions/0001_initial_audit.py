@@ -16,8 +16,9 @@ def upgrade():
         sa.Column("payload", sa.String(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )
-    op.execute("GRANT SELECT, INSERT ON TABLE audit_events TO netmind_app")
-    op.execute("GRANT USAGE, SELECT ON SEQUENCE audit_events_id_seq TO netmind_app")
+    if op.get_bind().dialect.name == "postgresql":
+        op.execute("GRANT SELECT, INSERT ON TABLE audit_events TO netmind_app")
+        op.execute("GRANT USAGE, SELECT ON SEQUENCE audit_events_id_seq TO netmind_app")
 
 
 def downgrade():

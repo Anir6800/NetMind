@@ -135,3 +135,10 @@
 - Started: 2026-10-22
 - Scope: bounded raw probes, timestamped source-labeled samples, and backend freshness/smoothing/retention.
 - Verification: fixture and timeout probes, unknown/stale TTL, EWMA, and ring retention tests passed; combined pytest (19 passed) and ruff passed.
+
+## NM-D3-S05 — Persist networks/incidents in PostgreSQL
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: constrained relational persistence, focused repositories, and clean-database migration/CRUD tests.
+- Verification: isolated CRUD and empty-database migration tests passed; pytest (13 passed), ruff, and offline Alembic SQL checks passed.
