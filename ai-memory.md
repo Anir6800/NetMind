@@ -98,8 +98,9 @@
 
 ## NM-D2-S07 — Implement local responsive shell
 
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Started: 2026-10-22
+- Verification: accessible shell, skip link, focus styling, responsive navigation, and local theme switch added; frontend Vite build passed.
 
 ## NM-D2-S08 — Implement MVP route skeletons
 

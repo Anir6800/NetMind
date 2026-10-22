@@ -10,6 +10,6 @@ export function App() {
 
 import { createRoot } from "react-dom/client";
 import "./styles/tokens.css";
-import "./style.css";
+import "./styles/global.css";
 
 createRoot(document.getElementById("root")!).render(<App />);
