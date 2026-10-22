@@ -15,3 +15,4 @@
 | NM-D2-S03 — Design Operations Overview in Stitch | Complete | Stitch canonical overview generated; true runtime incident-count contract plus loading/empty states recorded; frontend build passed |
 | NM-D2-S04 — Design Network Topology in Stitch | Complete | Stitch topology reference and explicit canvas/legend semantics recorded; frontend build passed |
 | NM-D2-S05 — Design Incident Center and Detail in Stitch | Complete | Separate Stitch handoffs preserve shared actions, timeline, and evidence hierarchy; frontend build passed |
+| NM-D2-S06 — Design AI Copilot and Recovery Center in Stitch | Complete | Separate approval-gated Stitch handoffs preserve references, risks, and rollback; frontend build passed |
