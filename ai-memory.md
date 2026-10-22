@@ -46,7 +46,14 @@
 
 ## NM-D1-S07 — Configure Firebase Auth emulator
 
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Started: 2026-10-22
 - Scope: demo-netmind Firebase emulator config, React local login client, backend token verification, role claims, and secured `/me`.
 - Verification: backend pytest passed (5 tests, all four roles); ruff passed; frontend Vite build passed. Unsigned-token warning is documented for local test mode.
+
+## NM-D1-S08 — Document and test startup paths
+
+- Status: IN_PROGRESS
+- Started: 2026-10-22
+- Scope: local startup/check scripts, explicit loopback ports, and documentation of controller independence.
+- Verification: backend pytest (5 passed), ruff, frontend build, and shell syntax checks passed. Live health scripts require local services; Docker daemon was unavailable.

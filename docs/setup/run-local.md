@@ -1,0 +1,21 @@
+# Run NetMind locally
+
+The local stack binds to loopback only:
+
+| Service | Address | Start command |
+| --- | --- | --- |
+| FastAPI | `127.0.0.1:8000` | started by `scripts/dev-netmind.sh` |
+| Vite frontend | `127.0.0.1:5173` | started by `scripts/dev-netmind.sh` |
+| PostgreSQL | `127.0.0.1:5432` | `docker compose up -d postgres` |
+| Firebase Auth emulator | `127.0.0.1:9099` | `firebase emulators:start --only auth` |
+
+Install backend development dependencies with `python -m pip install -e "backend[dev]"`, then run:
+
+```bash
+bash scripts/dev-netmind.sh
+bash scripts/check-netmind.sh
+```
+
+The simulation controller is intentionally independent of the web service. It can consume the capability matrix and run as a separate process; the startup script does not make the API or frontend its parent or transport dependency.
+
+No cloud hosting resource is configured. `firebase.json` configures only the local Auth emulator; it is not a hosting deployment configuration.
