@@ -13,3 +13,5 @@
 | NM-D2-S01 — Approve shared Stitch design DNA | Complete | Stitch design system/screenshot approved; teal dark/light tokens validated and frontend build passed |
 | NM-D2-S02 — Document Stitch-to-React workflow | Complete | Secure MCP policy and no-key manual React shell fallback documented; credential scan and frontend build passed |
 | NM-D2-S03 — Design Operations Overview in Stitch | Complete | Stitch canonical overview generated; true runtime incident-count contract plus loading/empty states recorded; frontend build passed |
+| NM-D2-S04 — Design Network Topology in Stitch | Complete | Stitch topology reference and explicit canvas/legend semantics recorded; frontend build passed |
+| NM-D2-S05 — Design Incident Center and Detail in Stitch | Complete | Separate Stitch handoffs preserve shared actions, timeline, and evidence hierarchy; frontend build passed |

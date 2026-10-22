@@ -86,8 +86,9 @@
 
 ## NM-D2-S05 — Design Incident Center and Detail in Stitch
 
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Started: 2026-10-22
+- Verification: separate Stitch references and prompts recorded; shared action/evidence hierarchy defined; frontend build passed.
 
 ## NM-D2-S06 — Design AI Copilot and Recovery Center in Stitch
 
