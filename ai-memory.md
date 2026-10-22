@@ -114,3 +114,10 @@
 - Started: 2026-10-22
 - Scope: versioned topology contract, six-node demo fixture, and invalid-graph validation tests.
 - Verification: demo fixture validated; invalid endpoints and baseline links rejected; pytest (8 passed) and ruff passed.
+
+## NM-D3-S02 — Build safe Mininet controller adapter
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: token-authenticated loopback JSON-RPC controller, allowlisted topology-validated commands, and subprocess safety checks.
+- Verification: allowlist/idempotence/unknown-interface and no-shell tests passed; combined pytest (12 passed) and ruff passed.
