@@ -1,0 +1,20 @@
+{
+  "commands": {
+    "docker": {"available": true, "version": "Docker version 29.7.2, build a7dcaa6"},
+    "firebase": {"available": true, "version": null},
+    "git": {"available": true, "version": "git version 2.56.0.windows.2"},
+    "ip": {"available": false},
+    "iperf3": {"available": false},
+    "mn": {"available": false},
+    "node": {"available": true, "version": "v24.12.0"},
+    "ovs-vsctl": {"available": false},
+    "python3": {"available": true, "version": null},
+    "tc": {"available": false}
+  },
+  "network_namespaces": false,
+  "open_vswitch": false,
+  "os": {"linux_or_ubuntu_vm": false, "machine": "AMD64", "release": "11", "system": "Windows"},
+  "privileges": {"cap_net_admin": false, "root": false, "uid": null},
+  "ram_bytes": 25480257536,
+  "selected_mode": "SIMULATED"
+}
