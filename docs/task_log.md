@@ -30,3 +30,4 @@
 | NM-D4-S02 — Build incident timeline and audit log | Complete | Immutable canonical JSON SHA-256 hash chain, ordered incident event timeline, migration backfill, and tested tamper-detecting `/audit/verify` endpoint |
 | NM-D4-S03 — Create Gemini client adapter with fallback | Complete | Plan amended to NVIDIA: Nemotron primary, Meta fallback, 40-RPM limit, structured live tests, timeout/retries/circuit breaker, redacted metadata, ignored `.env`, and offline fixture |
 | NM-D4-S04 — Define structured AI diagnosis schema | Complete | Deterministic probe-path set cover clears passed links, strict evidence/link/action grounding rejects free-form commands, and typed localizer agreement is ready for an API/UI consumer |
+| NM-D4-S05 — Build NetMind copilot question path | Complete | Read-only audit-evidence Q&A with `audit:<id>` citations, local execution refusal, explicit cloud/offline labels, and accessible 429/timeout feedback |

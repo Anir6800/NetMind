@@ -196,4 +196,12 @@
 - Scope: grounded diagnosis validation, deterministic probe-path fault localization, and provider explanation constrained to localized evidence.
 - Observed: passed probe links are cleared before deterministic set-cover selection; diagnosis evidence, candidate links, and recommended action references are validated against server-provided sets. NVIDIA is constrained to explain the provider context, and typed `localizer_agreement` is available for the next API/UI task.
 - Verification: malformed JSON/schema, unknown evidence, non-allowlisted actions, free-form commands, and links outside localization are rejected. Backend pytest (41 passed), simulation-controller pytest (15 passed), repository ruff, and frontend build passed.
+
+## NM-D4-S05 — Build NetMind copilot question path
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: read-only grounded incident Q&A endpoint, execution-request refusal, and citation-aware copilot UI.
+- Observed: copilot context is limited to the latest 20 immutable audit events for the requested incident; answers cite `audit:<id>` records. Execution-shaped prompts are refused locally before an NVIDIA call, and the UI labels cloud versus offline sources and renders 429/timeout feedback.
+- Verification: endpoint citation and adversarial execution-prompt tests passed; backend pytest (44 passed), simulation-controller pytest (15 passed), repository ruff, and frontend production build passed.
 - Amendment: NVIDIA Nemotron is requested as primary with Meta Muse as fallback, a 40-RPM client-side limit, and authorised live provider checks when a local key is present.
