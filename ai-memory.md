@@ -107,3 +107,10 @@
 - Status: COMPLETE
 - Started: 2026-10-22
 - Verification: eight route components are present and labeled SAMPLE; frontend Vite build passed.
+
+## NM-D3-S01 — Implement typed network topology schema
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: versioned topology contract, six-node demo fixture, and invalid-graph validation tests.
+- Verification: demo fixture validated; invalid endpoints and baseline links rejected; pytest (8 passed) and ruff passed.

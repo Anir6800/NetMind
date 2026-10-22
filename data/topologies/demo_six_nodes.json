@@ -1,0 +1,20 @@
+{
+  "version": "v1",
+  "addressing_plan": "10.10.0.0/24",
+  "nodes": [
+    {"id": "host-a", "type": "host", "interfaces": [{"id": "eth0", "address": "10.10.0.10/24"}]},
+    {"id": "switch-a", "type": "switch", "interfaces": [{"id": "p1", "address": "10.10.0.1/24"}, {"id": "p2", "address": "10.10.0.2/24"}]},
+    {"id": "router-a", "type": "router", "interfaces": [{"id": "wan0", "address": "10.10.0.3/24"}, {"id": "wan1", "address": "10.10.0.4/24"}]},
+    {"id": "router-b", "type": "router", "interfaces": [{"id": "wan0", "address": "10.10.0.5/24"}, {"id": "wan1", "address": "10.10.0.6/24"}]},
+    {"id": "switch-b", "type": "switch", "interfaces": [{"id": "p1", "address": "10.10.0.7/24"}, {"id": "p2", "address": "10.10.0.8/24"}]},
+    {"id": "host-b", "type": "host", "interfaces": [{"id": "eth0", "address": "10.10.0.20/24"}]}
+  ],
+  "links": [
+    {"id": "host-a-switch-a", "a": {"node_id": "host-a", "interface_id": "eth0"}, "b": {"node_id": "switch-a", "interface_id": "p1"}, "capacity_mbps": 1000, "delay_ms": 1, "state": "up"},
+    {"id": "switch-a-router-a", "a": {"node_id": "switch-a", "interface_id": "p2"}, "b": {"node_id": "router-a", "interface_id": "wan0"}, "capacity_mbps": 1000, "delay_ms": 1, "state": "up"},
+    {"id": "router-a-router-b", "a": {"node_id": "router-a", "interface_id": "wan1"}, "b": {"node_id": "router-b", "interface_id": "wan0"}, "capacity_mbps": 1000, "delay_ms": 5, "state": "up"},
+    {"id": "router-b-switch-b", "a": {"node_id": "router-b", "interface_id": "wan1"}, "b": {"node_id": "switch-b", "interface_id": "p1"}, "capacity_mbps": 1000, "delay_ms": 1, "state": "up"},
+    {"id": "switch-b-host-b", "a": {"node_id": "switch-b", "interface_id": "p2"}, "b": {"node_id": "host-b", "interface_id": "eth0"}, "capacity_mbps": 1000, "delay_ms": 1, "state": "up"}
+  ],
+  "expected_baseline_paths": [{"source_host_id": "host-a", "destination_host_id": "host-b", "link_ids": ["host-a-switch-a", "switch-a-router-a", "router-a-router-b", "router-b-switch-b", "switch-b-host-b"]}]
+}

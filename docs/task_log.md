@@ -18,3 +18,4 @@
 | NM-D2-S06 — Design AI Copilot and Recovery Center in Stitch | Complete | Separate approval-gated Stitch handoffs preserve references, risks, and rollback; frontend build passed |
 | NM-D2-S07 — Implement local responsive shell | Complete | Responsive sidebar/top bar/theme/status shell with keyboard focus and local-only assets; frontend build passed |
 | NM-D2-S08 — Implement MVP route skeletons | Complete | Eight SAMPLE-only route skeletons and router entries added; frontend build passed |
+| NM-D3-S01 — Implement typed network topology schema | Complete | Versioned six-node topology/addressing/baseline paths validated; invalid graph tests, pytest, and ruff passed |
