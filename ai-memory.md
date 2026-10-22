@@ -71,3 +71,10 @@
 - Started: 2026-10-22
 - Scope: Stitch MCP/editor workflow, secure manual fallback, and reproducible React shell handoff.
 - Verification: manual fallback steps recorded; source credential scan found no Stitch key pattern; frontend Vite build passed.
+
+## NM-D2-S03 — Design Operations Overview in Stitch
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: canonical operations overview prompt with service health, live incident count contract, and empty/loading states.
+- Verification: Stitch generation session completed; prompt documents data-bound health/incidents and three required states; frontend Vite build passed.
