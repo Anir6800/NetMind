@@ -180,3 +180,11 @@
 - Scope: append-only hash-chained provenance events, incident timeline ordering, and tamper verification endpoint.
 - Observed: every timeline append is canonical JSON hash-chained from the prior event; the verifier reports the first invalid event ID after payload tampering.
 - Verification: backend pytest (30 passed, including migration and endpoint tampering), repository ruff, simulation-controller pytest (15 passed), and frontend production build passed.
+
+## NM-D4-S03 — Create Gemini client adapter with fallback
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: server-only Gemini diagnosis adapter with deterministic offline fixture, resilience controls, and redacted metadata logging.
+- Observed: `GEMINI_API_KEY` is server-only; missing key, fixture mode, requests failures, and an open circuit return a clearly labelled `OFFLINE_FIXTURE` diagnosis. Online Gemini is optional and separate from local runtime.
+- Verification: backend pytest (33 passed), simulation-controller pytest (15 passed), repository ruff, and frontend production build passed. No Gemini request was sent during verification.
