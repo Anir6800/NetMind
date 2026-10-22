@@ -1,0 +1,1 @@
+"""NetMind backend application."""

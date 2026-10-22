@@ -22,3 +22,10 @@
 - Started: 2026-10-22
 - Scope: create the bounded frontend, backend, simulation-controller, infra, docs, scripts, and Stitch design tree with tracked README markers.
 - Verification: required directory tree exists; Python compile and capability probe passed; committed with a clean working tree.
+
+## NM-D1-S04 — Bootstrap FastAPI backend
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: FastAPI health endpoint, Pydantic settings, backend packaging, and health test.
+- Verification: `pytest -q` passed (1 test); `ruff check app tests` and `ruff format --check app tests` passed.
