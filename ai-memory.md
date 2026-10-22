@@ -39,7 +39,14 @@
 
 ## NM-D1-S06 — Start local Postgres in Compose
 
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Started: 2026-10-22
 - Scope: loopback-only Postgres, SQLAlchemy session/model layer, and versioned Alembic baseline with least-privilege audit access.
 - Verification: SQLAlchemy model import, Alembic offline SQL generation, ruff, and backend pytest passed. Live Compose health/migration is blocked because the Docker daemon is unavailable.
+
+## NM-D1-S07 — Configure Firebase Auth emulator
+
+- Status: IN_PROGRESS
+- Started: 2026-10-22
+- Scope: demo-netmind Firebase emulator config, React local login client, backend token verification, role claims, and secured `/me`.
+- Verification: backend pytest passed (5 tests, all four roles); ruff passed; frontend Vite build passed. Unsigned-token warning is documented for local test mode.
