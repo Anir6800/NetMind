@@ -1,11 +1,14 @@
-import { useQuery } from "@tanstack/react-query";
 import { createBrowserRouter } from "react-router-dom";
-import { getHealth } from "../lib/api";
 import { AppShell } from "../components/layout/AppShell";
+import { Copilot } from "../pages/Copilot";
+import { IncidentDetail } from "../pages/IncidentDetail";
+import { Incidents } from "../pages/Incidents";
+import { Lab } from "../pages/Lab";
+import { Monitoring } from "../pages/Monitoring";
+import { Overview } from "../pages/Overview";
+import { Recovery } from "../pages/Recovery";
+import { Topology } from "../pages/Topology";
 
-function Overview() {
-  const health = useQuery({ queryKey: ["health"], queryFn: getHealth });
-  return <main><h1>NetMind</h1><p>Network simulation overview</p><p data-testid="health">{health.isLoading ? "Checking backend…" : health.isError ? "Backend unavailable" : `Backend: ${health.data?.status ?? "Unknown"}`}</p></main>;
-}
-
-export const router = createBrowserRouter([{ element: <AppShell />, children: [{ path: "/", element: <Overview /> }] }]);
+export const router = createBrowserRouter([{ element: <AppShell />, children: [
+  { path: "/", element: <Overview /> }, { path: "/topology", element: <Topology /> }, { path: "/monitoring", element: <Monitoring /> }, { path: "/incidents", element: <Incidents /> }, { path: "/incidents/:incidentId", element: <IncidentDetail /> }, { path: "/copilot", element: <Copilot /> }, { path: "/recovery", element: <Recovery /> }, { path: "/lab", element: <Lab /> },
+] }]);

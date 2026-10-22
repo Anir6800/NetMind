@@ -1,0 +1,1 @@
+export function Recovery() { return <section className="page-card"><p className="eyebrow">SAMPLE · RECOVERY</p><h1>Recovery center</h1><p>Recovery plans will appear after a data source is connected and approval is recorded.</p></section>; }

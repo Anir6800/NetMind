@@ -1,0 +1,1 @@
+export function Incidents() { return <section className="page-card"><p className="eyebrow">SAMPLE · INCIDENTS</p><h1>Incident center</h1><p>Incident queue placeholder. No incident data is loaded.</p></section>; }

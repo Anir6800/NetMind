@@ -17,3 +17,4 @@
 | NM-D2-S05 — Design Incident Center and Detail in Stitch | Complete | Separate Stitch handoffs preserve shared actions, timeline, and evidence hierarchy; frontend build passed |
 | NM-D2-S06 — Design AI Copilot and Recovery Center in Stitch | Complete | Separate approval-gated Stitch handoffs preserve references, risks, and rollback; frontend build passed |
 | NM-D2-S07 — Implement local responsive shell | Complete | Responsive sidebar/top bar/theme/status shell with keyboard focus and local-only assets; frontend build passed |
+| NM-D2-S08 — Implement MVP route skeletons | Complete | Eight SAMPLE-only route skeletons and router entries added; frontend build passed |

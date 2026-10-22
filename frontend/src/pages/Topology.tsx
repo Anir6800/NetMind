@@ -1,0 +1,1 @@
+export function Topology() { return <section className="page-card"><p className="eyebrow">SAMPLE · TOPOLOGY</p><h1>Network topology</h1><p>Topology canvas placeholder. No runtime topology data is connected.</p></section>; }

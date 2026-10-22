@@ -1,0 +1,1 @@
+export function Monitoring() { return <section className="page-card"><p className="eyebrow">SAMPLE · MONITORING</p><h1>Live monitoring</h1><p>Telemetry placeholder. Connect a monitored source to display values.</p></section>; }

@@ -104,5 +104,6 @@
 
 ## NM-D2-S08 — Implement MVP route skeletons
 
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Started: 2026-10-22
+- Verification: eight route components are present and labeled SAMPLE; frontend Vite build passed.

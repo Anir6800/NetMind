@@ -1,0 +1,1 @@
+export function Copilot() { return <section className="page-card"><p className="eyebrow">SAMPLE · COPILOT</p><h1>AI copilot</h1><p>Recommendations will show evidence, risks, rollback, and approval state. No action is available.</p></section>; }

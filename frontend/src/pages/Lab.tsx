@@ -1,0 +1,1 @@
+export function Lab() { return <section className="page-card"><p className="eyebrow">SAMPLE · LAB</p><h1>Simulation lab</h1><p>Local simulation controls are not connected in this skeleton.</p></section>; }
