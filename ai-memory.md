@@ -15,3 +15,10 @@
 - Started: 2026-10-22
 - Scope: repository ignore rules, README, architecture/audit/task documentation, and branch conventions.
 - Verification: Python compile and capability probe passed; required files committed with a clean working tree.
+
+## NM-D1-S03 — Create backend/frontend/controller folder tree
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: create the bounded frontend, backend, simulation-controller, infra, docs, scripts, and Stitch design tree with tracked README markers.
+- Verification: required directory tree exists; Python compile and capability probe passed; committed with a clean working tree.
