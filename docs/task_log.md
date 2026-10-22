@@ -11,3 +11,4 @@
 | NM-D1-S07 — Configure Firebase Auth emulator | Complete | Emulator config, local Firebase client, secured `/me`, four-role auth tests, ruff, and frontend build passed |
 | NM-D1-S08 — Document and test startup paths | Complete | Loopback startup/check scripts, runbook, backend pytest/ruff, frontend build, and shell syntax checks passed; live services unavailable on host |
 | NM-D2-S01 — Approve shared Stitch design DNA | Complete | Stitch design system/screenshot approved; teal dark/light tokens validated and frontend build passed |
+| NM-D2-S02 — Document Stitch-to-React workflow | Complete | Secure MCP policy and no-key manual React shell fallback documented; credential scan and frontend build passed |
