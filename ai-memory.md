@@ -57,3 +57,10 @@
 - Started: 2026-10-22
 - Scope: local startup/check scripts, explicit loopback ports, and documentation of controller independence.
 - Verification: backend pytest (5 passed), ruff, frontend build, and shell syntax checks passed. Live health scripts require local services; Docker daemon was unavailable.
+
+## NM-D2-S01 — Approve shared Stitch design DNA
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: NetMind teal Soft Liquid Minimal design tokens, CSS handoff, and approved Stitch design reference.
+- Verification: Stitch project and screenshot inspected; `tokens.json` parsed successfully; frontend Vite build passed with tokens imported.
