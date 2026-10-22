@@ -29,3 +29,10 @@
 - Started: 2026-10-22
 - Scope: FastAPI health endpoint, Pydantic settings, backend packaging, and health test.
 - Verification: `pytest -q` passed (1 test); `ruff check app tests` and `ruff format --check app tests` passed.
+
+## NM-D1-S05 — Bootstrap React frontend
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: Vite React TypeScript shell, routed overview page, TanStack Query provider, and local API client.
+- Verification: `npm run build` passed; overview route is defined at `/`; frontend dependencies installed without vulnerabilities.
