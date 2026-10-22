@@ -8,3 +8,10 @@
 - Required evidence: `docs/setup/local-machine.md`, capability matrix, verification results, and safe Git commit.
 - Observed: Windows 11, 25.5 GB RAM, Docker/Git/Node/Python/Firebase available; no root/CAP_NET_ADMIN, netns, OVS, Mininet, `tc`, `ip`, or `iperf3`; selected mode `SIMULATED`.
 - Verification: `python scripts/probe_capabilities.py` passed; no application cloud hosting configuration exists.
+
+## NM-D1-S02 — Initialize separate Git repository
+
+- Status: COMPLETE
+- Started: 2026-10-22
+- Scope: repository ignore rules, README, architecture/audit/task documentation, and branch conventions.
+- Verification: Python compile and capability probe passed; required files committed with a clean working tree.
