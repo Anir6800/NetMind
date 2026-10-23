@@ -8,6 +8,19 @@ bash scripts/check-netmind.sh
 
 It fails fast when PostgreSQL, FastAPI, Vite, the Firebase Auth emulator, or the loopback simulation controller is unreachable. It checks the optional NVIDIA diagnosis API only when `NVIDIA_API_KEY` is exported; the application remains read-only and deterministic when that check is skipped or the provider is unavailable.
 
+## Before retrying
+
+Use Git Bash or a Linux/WSL shell, keep Docker Desktop's Linux engine running, and ensure `docker`, `python`, `npm`, and `firebase` resolve in that same shell. See [operations.md](operations.md) for the expected loopback ports and start sequence. Do not expose a port or loosen a controller binding to resolve a local conflict.
+
+| Symptom | Safe check and recovery |
+| --- | --- |
+| Docker engine is unavailable | Start Docker Desktop and wait until `docker compose ps` works, then rerun `bash scripts/dev-netmind.sh`. |
+| A required port is already in use | Identify and stop the local conflicting process; preserve the documented `127.0.0.1` bindings. |
+| Launcher rejects the controller token | Set a new non-empty `NETMIND_CONTROLLER_TOKEN` in the launcher shell. Do not supply it as a command-line argument or commit it. |
+| Gemini diagnosis is offline | Confirm `GEMINI_API_KEY` exists only in the ignored root `.env`; invalid/unavailable keys intentionally produce read-only fallback and do not block the rest of the demo. |
+| NVIDIA audit is skipped | This is expected unless `NVIDIA_API_KEY` is exported in the shell running `scripts/check-netmind.sh`. |
+| Auth emulator cannot start | Confirm the Firebase CLI is installed and ports `9099` and `4000` are free, then restart the launcher. |
+
 ## Restart and cleanup
 
 | Component | Recovery |
