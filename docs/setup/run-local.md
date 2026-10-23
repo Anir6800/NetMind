@@ -16,6 +16,6 @@ bash scripts/dev-netmind.sh
 bash scripts/check-netmind.sh
 ```
 
-The simulation controller is intentionally independent of the web service. It can consume the capability matrix and run as a separate process; the startup script does not make the API or frontend its parent or transport dependency.
+The simulation controller is intentionally independent of the web service. Start it separately with `NETMIND_CONTROLLER_TOKEN` set, then run `bash scripts/check-netmind.sh`; the startup script does not make the API or frontend its parent or transport dependency. See [troubleshooting.md](troubleshooting.md) for restart and cleanup procedures.
 
 No cloud hosting resource is configured. `firebase.json` configures only the local Auth emulator; it is not a hosting deployment configuration.
