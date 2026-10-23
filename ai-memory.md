@@ -12,6 +12,7 @@
 - Follow-up: Firebase emulator role seeding was corrected from an unsupported REST `customAttributes` update to the Firebase Admin SDK against the local emulator. The prior launcher run reached healthy PostgreSQL before that seeding request failed; it was then cleaned up by the tracked stop path.
 - Follow-up: a real launcher run started the full local stack, but topology/incidents returned 500 because `netmind_app` lacked privileges on tables created after the original audit migration. Migration `0007_grant_app_permissions` grants the existing restricted role DML/sequence access without widening the browser/controller boundary.
 - Follow-up: after permissions were fixed, the fresh database correctly returned 404 for `/networks/1/topology` because no demo network record was seeded. The launcher now idempotently seeds the fixture-backed network `id=1` and its devices after migrations.
+- Follow-up: user requested populated demo data. The local seed now creates 100 explicitly named SIMULATED incidents with source-labelled detection audit events; the UI requests up to 100 and labels this list as simulated demo data.
 
 ## NM-D1-S01 — Audit local Linux and network privileges
 

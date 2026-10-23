@@ -7,7 +7,7 @@ export type TelemetryMetric = { name: string; value: number | null; unit: string
 export type Incident = { id: number; network_id: number; title: string; severity: string; state: string; created_at?: string; evidence?: unknown; timeline?: { event_type?: string; created_at?: string; payload?: unknown }[]; diagnosis?: { summary?: string; probable_cause?: string; confidence?: number } };
 
 export async function getIncidents(): Promise<Incident[]> {
-  const response = await fetch("/incidents");
+  const response = await fetch("/incidents?limit=100");
   if (!response.ok) throw new Error("Incidents unavailable");
   return response.json() as Promise<Incident[]>;
 }
