@@ -1,9 +1,10 @@
 import base64
 import json
 import logging
+import time
 from typing import Annotated
 
-from fastapi import HTTPException, Security
+from fastapi import Depends, HTTPException, Security
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 
 from app.core.config import get_settings
@@ -16,7 +17,11 @@ ROLES = {"viewer", "operator", "approver", "admin"}
 def _unsigned_payload(token: str) -> dict:
     try:
         payload = token.split(".")[1]
-        return json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+        claims = json.loads(base64.urlsafe_b64decode(payload + "=" * (-len(payload) % 4)))
+        expires_at = claims.get("exp")
+        if expires_at is not None and (not isinstance(expires_at, (int, float)) or expires_at <= time.time()):
+            raise HTTPException(status_code=401, detail="Expired test token")
+        return claims
     except (IndexError, ValueError, json.JSONDecodeError, UnicodeDecodeError) as exc:
         raise HTTPException(status_code=401, detail="Invalid test token") from exc
 
@@ -26,6 +31,8 @@ def verify_token(credentials: Annotated[HTTPAuthorizationCredentials | None, Sec
         raise HTTPException(status_code=401, detail="Bearer token required")
     settings = get_settings()
     if settings.auth_allow_unsigned:
+        if settings.environment not in {"development", "local", "test"}:
+            raise HTTPException(status_code=403, detail="Unsigned tokens are local emulator/test only")
         logger.warning("Unsigned Firebase token accepted; local emulator/test use only")
         claims = _unsigned_payload(credentials.credentials)
     else:
@@ -43,3 +50,11 @@ def verify_token(credentials: Annotated[HTTPAuthorizationCredentials | None, Sec
     if role not in ROLES:
         raise HTTPException(status_code=403, detail="Unsupported role")
     return claims
+
+
+def require_roles(*roles: str):
+    def dependency(claims: Annotated[dict, Depends(verify_token)]) -> dict:
+        if claims["role"] not in roles:
+            raise HTTPException(status_code=403, detail="Insufficient role for this operation")
+        return claims
+    return dependency
