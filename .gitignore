@@ -23,6 +23,8 @@ playwright-report/
 *.p12
 service-account*.json
 firebase-debug.log
+logs/
+.run/
 
 # IDE and OS files
 .vscode/

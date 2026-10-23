@@ -1,5 +1,13 @@
 # NetMind task memory
 
+## NM-RUN — One-click Windows run and demo handoff
+
+- Status: COMPLETE WITH ENVIRONMENT LIMITS
+- Started: 2026-10-23
+- Scope: add Windows start/stop scripts, a local-only demo setup path, and runnable demo documentation without changing product behaviour.
+- Observed: actual services use PostgreSQL `5432`, API `8000`, Vite `5173`, Firebase Auth/UI `9099`/`4000`, and token-gated controller `8765`; Windows capability probe selects `SIMULATED`. `run.ps1` and `stop.ps1` parse successfully. `stop.ps1` with no launcher state reported that unrelated processes were not touched. `run.ps1 -Check` correctly reported an unrelated `postgres` PID occupying port `5432` and gave the safe remediation.
+- Verification: frontend E2E passed (2 tests), frontend production build passed, and backend suite passed (125 tests). Full clean run, Firebase seeding, browser login, live controller/recovery path, Docker-stopped check, and launcher-managed shutdown are NOT RUN: this workstation has an unrelated PostgreSQL listener on `5432`, and Docker Desktop's Linux engine was unavailable earlier in this task. The demo guide explicitly documents existing product boundaries: current Lab UI does not send a fault and recovery execution API returns 501; no live path is claimed.
+
 ## NM-D1-S01 — Audit local Linux and network privileges
 
 - Status: COMPLETE
@@ -214,3 +222,11 @@
 - Observed: protected approval/execution, allowlisted recovery policy, verified rollback, loopback-only controller binding, raw-shell rejection, secret-pattern scan, Python dependency audit, source security lint, frontend build, and fixture E2E passed. Production workflow assertions were changed to runtime validation so the security guard survives Python optimisation.
 - Blocker: `npm audit --omit=dev --audit-level=high` found four high-severity transitive Firebase/@grpc/grpc-js advisories. npm proposes a breaking forced Firebase downgrade; it was not applied. `docs/acceptance/netmind-mvp.md` explicitly records the overall gate as FAIL pending a compatible dependency remediation.
 - Verification: backend security/recovery suite (35 passed), full backend suite (125 passed), controller suite (19 passed), `ruff check --select S app`, full backend ruff, `pip-audit -r backend/requirements.lock` (no known vulnerabilities), frontend production build, and Playwright fixture E2E (1 passed).
+
+## NM-D7-S05 — Capture UI and lab demo evidence
+
+- Status: COMPLETE
+- Started: 2026-10-23
+- Scope: reproducible, fixture-backed captures of simulated lab/topology, incident evidence and diagnosis, approval gate, offline/read-only and stale labels, verified recovery, and rollback.
+- Observed: eight PNGs were generated in `docs/evidence/screenshots/` by `CAPTURE_UI_EVIDENCE=1 npm run test:e2e`. Every non-live state is visibly labelled; the evidence README and demo script explicitly state these are local API-shaped fixtures, not proof of a live controller run.
+- Verification: capture-mode Playwright E2E (2 passed); normal Playwright E2E (2 passed); frontend production build passed (existing >500 kB chunk warning only).
