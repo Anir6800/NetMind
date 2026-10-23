@@ -110,19 +110,9 @@ function Start-Tracked([string]$name, [string]$file, [string[]]$arguments) {
 function Write-LauncherState([object[]]$processes) {
     @{ Processes = $processes; StartedAt = (Get-Date).ToString('o'); Mode = 'SIMULATED'; FrontendPort = $frontendPort } | ConvertTo-Json -Depth 4 | Set-Content $statePath -Encoding utf8
 }
-function Seed-DemoUsers {
-    $password = 'NetMindDemo!2026'
-    foreach ($role in 'viewer','operator','approver','admin') {
-        $email = "$role@netmind.local"
-        $signUp = @{ email = $email; password = $password; returnSecureToken = $true } | ConvertTo-Json
-        try { $user = Invoke-RestMethod -Method Post -ContentType 'application/json' -Body $signUp -Uri 'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signUp?key=demo' } catch {
-            $user = Invoke-RestMethod -Method Post -ContentType 'application/json' -Body $signUp -Uri 'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=demo'
-        }
-        $body = @{ localId = $user.localId; customAttributes = (@{ role = $role } | ConvertTo-Json -Compress); returnSecureToken = $true } | ConvertTo-Json
-        Invoke-RestMethod -Method Post -ContentType 'application/json' -Body $body -Uri 'http://127.0.0.1:9099/identitytoolkit.googleapis.com/v1/accounts:update?key=demo' | Out-Null
-    }
-    Write-Host 'Demo accounts: viewer@netmind.local, operator@netmind.local, approver@netmind.local, admin@netmind.local'
-    Write-Host "Demo password: $password"
+function Seed-DemoUsers([string]$python) {
+    & $python (Join-Path $root 'scripts\seed_demo_users.py')
+    if ($LASTEXITCODE -ne 0) { Fail 'Firebase demo-user seeding failed. Read logs\firebase.err.log and rerun after the emulator is healthy.' }
 }
 
 if ($Stop) { & (Join-Path $root 'stop.ps1'); exit $LASTEXITCODE }
@@ -169,7 +159,7 @@ try {
     $tracked = @()
     $tracked += Start-Tracked 'firebase' 'cmd.exe' @('/c', 'firebase emulators:start --only auth --project demo-netmind')
     Write-LauncherState $tracked
-    Wait-Port 9099 'Firebase Auth'; Wait-Port 4000 'Firebase Emulator UI'; Seed-DemoUsers
+    Wait-Port 9099 'Firebase Auth'; Wait-Port 4000 'Firebase Emulator UI'; Seed-DemoUsers $venvPython
     $tracked += Start-Tracked 'backend' $venvPython @('-m','uvicorn','app.main:app','--host','127.0.0.1','--port','8000','--app-dir','backend')
     Write-LauncherState $tracked
     Wait-Http 'http://127.0.0.1:8000/health' 'API'

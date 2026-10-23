@@ -9,6 +9,7 @@
 - Verification: frontend E2E passed (2 tests), frontend production build passed, and backend suite passed (125 tests). Full clean run, Firebase seeding, browser login, live controller/recovery path, Docker-stopped check, and launcher-managed shutdown are NOT RUN: this workstation has an unrelated PostgreSQL listener on `5432`, and Docker Desktop's Linux engine was unavailable earlier in this task. The demo guide explicitly documents existing product boundaries: current Lab UI does not send a fault and recovery execution API returns 501; no live path is claimed. Follow-up found an unrelated NeuroRoute Vite process on `5173`; the launcher now reports it and safely falls back to `5174` rather than stopping it. After the local PostgreSQL service was stopped, `run.ps1 -Check -NoBrowser` passed on 2026-10-23.
 
 - Follow-up: launcher key setup now detects an existing ignored `NVIDIA_API_KEY` and skips the Gemini prompt; it prompts only when neither optional provider key exists.
+- Follow-up: Firebase emulator role seeding was corrected from an unsupported REST `customAttributes` update to the Firebase Admin SDK against the local emulator. The prior launcher run reached healthy PostgreSQL before that seeding request failed; it was then cleaned up by the tracked stop path.
 
 ## NM-D1-S01 — Audit local Linux and network privileges
 
