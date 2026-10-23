@@ -88,6 +88,9 @@ class RecoveryExecution(Base):
     deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
     completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+    mttd_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    mttr_ms: Mapped[int | None] = mapped_column(Integer, nullable=True)
+    verification: Mapped[str | None] = mapped_column(String, nullable=True)
 
 
 class AuditEvent(Base):
