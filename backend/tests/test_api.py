@@ -39,6 +39,17 @@ def test_network_and_incident_endpoints_return_typed_data() -> None:
         assert api.get("/incidents?limit=1").json()[0]["title"] == "Demo incident"
 
 
+def test_incident_detail_includes_its_audit_evidence() -> None:
+    with client() as api:
+        session = next(iter(app.dependency_overrides[get_session]()))
+        AuditRepository(session).append("detection", {"incident_id": 1, "evidence": {"link_id": "router-a-router-b", "scenario": "link_down"}})
+        session.commit()
+        detail = api.get("/incidents/1").json()
+    assert detail["evidence"]["link_id"] == "router-a-router-b"
+    assert detail["timeline"][0]["event_type"] == "detection"
+    assert detail["diagnosis"]["confidence"] == 0.92
+
+
 def test_endpoints_return_404_and_422() -> None:
     with client() as api:
         assert api.get("/networks/99/topology").status_code == 404

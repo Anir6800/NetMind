@@ -1,5 +1,5 @@
 from datetime import UTC, datetime
-from time import monotonic
+from time import monotonic, time
 from typing import Literal
 
 from fastapi import APIRouter
@@ -9,6 +9,8 @@ from app.services.telemetry import TelemetryStore
 
 router = APIRouter(prefix="/telemetry", tags=["telemetry"])
 store = TelemetryStore()
+# Windows runs the lab without Mininet, so show a clearly labelled local sample on startup.
+store.ingest({"source": "SIMULATED", "monotonic_time": monotonic(), "wall_time": time(), "rtt_ms": 14, "loss_pct": 0.2, "jitter_ms": 2.1, "throughput_mbps": 940})
 
 
 class TelemetryMetric(BaseModel):
