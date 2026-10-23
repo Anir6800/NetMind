@@ -10,6 +10,7 @@
 
 - Follow-up: launcher key setup now detects an existing ignored `NVIDIA_API_KEY` and skips the Gemini prompt; it prompts only when neither optional provider key exists.
 - Follow-up: Firebase emulator role seeding was corrected from an unsupported REST `customAttributes` update to the Firebase Admin SDK against the local emulator. The prior launcher run reached healthy PostgreSQL before that seeding request failed; it was then cleaned up by the tracked stop path.
+- Follow-up: a real launcher run started the full local stack, but topology/incidents returned 500 because `netmind_app` lacked privileges on tables created after the original audit migration. Migration `0007_grant_app_permissions` grants the existing restricted role DML/sequence access without widening the browser/controller boundary.
 
 ## NM-D1-S01 — Audit local Linux and network privileges
 
