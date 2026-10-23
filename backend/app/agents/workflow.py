@@ -78,12 +78,14 @@ class AgentWorkflow:
 
     @staticmethod
     def _propose(state: WorkflowState, _: dict[str, dict[str, Any]]) -> WorkflowState:
-        assert state.proposal is not None
+        if state.proposal is None:
+            raise RuntimeError("workflow proposal is required before propose")
         return state.model_copy(update={"proposal": state.proposal.model_copy(update={"recommended_action_ref": "review_evidence"})})
 
     @staticmethod
     def _validate(state: WorkflowState, _: dict[str, dict[str, Any]]) -> WorkflowState:
-        assert state.proposal is not None
+        if state.proposal is None:
+            raise RuntimeError("workflow proposal is required before validate")
         action = state.proposal.recommended_action_ref
         if action not in ALLOWLIST_ACTION_IDS and action != "review_evidence":
             raise ValueError("proposal action is not allowlisted")

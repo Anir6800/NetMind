@@ -205,3 +205,12 @@
 - Observed: copilot context is limited to the latest 20 immutable audit events for the requested incident; answers cite `audit:<id>` records. Execution-shaped prompts are refused locally before an NVIDIA call, and the UI labels cloud versus offline sources and renders 429/timeout feedback.
 - Verification: endpoint citation and adversarial execution-prompt tests passed; backend pytest (44 passed), simulation-controller pytest (15 passed), repository ruff, and frontend production build passed.
 - Amendment: NVIDIA Nemotron is requested as primary with Meta Muse as fallback, a 40-RPM client-side limit, and authorised live provider checks when a local key is present.
+
+## NM-D7-S04 — Complete security and permission gates
+
+- Status: COMPLETE WITH RELEASE BLOCKER
+- Started: 2026-10-23
+- Scope: security/permission acceptance gates, source and dependency audits, local-controller binding/no-shell checks, and MVP fixture verification.
+- Observed: protected approval/execution, allowlisted recovery policy, verified rollback, loopback-only controller binding, raw-shell rejection, secret-pattern scan, Python dependency audit, source security lint, frontend build, and fixture E2E passed. Production workflow assertions were changed to runtime validation so the security guard survives Python optimisation.
+- Blocker: `npm audit --omit=dev --audit-level=high` found four high-severity transitive Firebase/@grpc/grpc-js advisories. npm proposes a breaking forced Firebase downgrade; it was not applied. `docs/acceptance/netmind-mvp.md` explicitly records the overall gate as FAIL pending a compatible dependency remediation.
+- Verification: backend security/recovery suite (35 passed), full backend suite (125 passed), controller suite (19 passed), `ruff check --select S app`, full backend ruff, `pip-audit -r backend/requirements.lock` (no known vulnerabilities), frontend production build, and Playwright fixture E2E (1 passed).
