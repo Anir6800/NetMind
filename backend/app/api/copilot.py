@@ -6,6 +6,7 @@ from sqlalchemy.orm import Session
 
 from app.core.config import get_settings
 from app.db.session import get_session
+from app.integrations.gemini_client import GeminiClient
 from app.integrations.nvidia_client import NvidiaClient
 from app.services.ai.copilot import CopilotAnswer, CopilotService
 
@@ -26,7 +27,8 @@ class CopilotResponse(BaseModel):
 
 
 def get_copilot_service(session: Annotated[Session, Depends(get_session)]) -> CopilotService:
-    return CopilotService(session, NvidiaClient(get_settings()))
+    settings = get_settings()
+    return CopilotService(session, GeminiClient(settings) if settings.gemini_api_key else NvidiaClient(settings))
 
 
 @router.post("/questions", response_model=CopilotResponse)

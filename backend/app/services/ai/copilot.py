@@ -24,7 +24,7 @@ class CopilotAnswer:
 
 
 class CopilotService:
-    def __init__(self, session: Session, client: NvidiaClient) -> None:
+    def __init__(self, session: Session, client: NvidiaClient | object) -> None:
         self.audit = AuditRepository(session)
         self.client = client
 
@@ -39,7 +39,7 @@ class CopilotService:
         if diagnosis.offline:
             fallback = summarize(evidence)
             return CopilotAnswer(f"{fallback.summary} Manual runbook: {' '.join(fallback.runbook)}", citations, "OFFLINE_READ_ONLY", False, True)
-        return CopilotAnswer(diagnosis.summary, citations, diagnosis.source, diagnosis.source == "NVIDIA")
+        return CopilotAnswer(diagnosis.summary, citations, diagnosis.source, True)
 
     def _evidence(self, incident_id: int) -> dict[str, dict]:
         evidence: dict[str, dict] = {}
