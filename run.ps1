@@ -12,9 +12,10 @@ $root = $PSScriptRoot
 $logs = Join-Path $root 'logs'
 $stateDir = Join-Path $root '.run'
 $statePath = Join-Path $stateDir 'netmind-processes.json'
+$frontendPort = 5173
 $ports = @(
     @{ Name = 'PostgreSQL'; Port = 5432 }, @{ Name = 'API'; Port = 8000 },
-    @{ Name = 'Frontend'; Port = 5173 }, @{ Name = 'Firebase Auth'; Port = 9099 },
+    @{ Name = 'Firebase Auth'; Port = 9099 },
     @{ Name = 'Firebase Emulator UI'; Port = 4000 }, @{ Name = 'Controller'; Port = 8765 }
 )
 
@@ -32,6 +33,14 @@ function Assert-PortsFree {
         $owner = Get-PortProcess $item.Port
         if ($owner) { Fail "port $($item.Port) ($($item.Name)) is in use by $($owner.ProcessName) (PID $($owner.Id)). Fix: close that process or run .\stop.ps1 if it is a previous NetMind run." }
     }
+}
+function Resolve-FrontendPort {
+    $owner = Get-PortProcess 5173
+    if (-not $owner) { return 5173 }
+    $fallback = Get-PortProcess 5174
+    if ($fallback) { Fail "port 5173 is in use by $($owner.ProcessName) (PID $($owner.Id)), and fallback port 5174 is in use by $($fallback.ProcessName) (PID $($fallback.Id)). Fix: close either process, then rerun." }
+    Write-Host "Frontend port 5173 is in use by $($owner.ProcessName) (PID $($owner.Id)); using NetMind fallback http://127.0.0.1:5174."
+    return 5174
 }
 function Wait-Port([int]$port, [string]$name, [int]$seconds = 45) {
     $until = (Get-Date).AddSeconds($seconds)
@@ -67,7 +76,8 @@ function Test-AlreadyRunning {
             $process = Get-Process -Id $entry.Id -ErrorAction Stop
             if ([int64]$process.StartTime.ToFileTimeUtc() -ne [int64]$entry.StartTimeUtc) { return $false }
         }
-        return ($null -ne (Get-PortProcess 8000)) -and ($null -ne (Get-PortProcess 5173)) -and ($null -ne (Get-PortProcess 9099)) -and ($null -ne (Get-PortProcess 8765))
+        $savedFrontendPort = if ($state.FrontendPort) { [int]$state.FrontendPort } else { 5173 }
+        return ($null -ne (Get-PortProcess 8000)) -and ($null -ne (Get-PortProcess $savedFrontendPort)) -and ($null -ne (Get-PortProcess 9099)) -and ($null -ne (Get-PortProcess 8765))
     } catch { return $false }
 }
 function Set-EnvLine([string]$path, [string]$key, [string]$value) {
@@ -97,7 +107,7 @@ function Start-Tracked([string]$name, [string]$file, [string[]]$arguments) {
     return [pscustomobject]@{ Name = $name; Id = $process.Id; StartTimeUtc = [int64](Get-Process -Id $process.Id).StartTime.ToFileTimeUtc() }
 }
 function Write-LauncherState([object[]]$processes) {
-    @{ Processes = $processes; StartedAt = (Get-Date).ToString('o'); Mode = 'SIMULATED' } | ConvertTo-Json -Depth 4 | Set-Content $statePath -Encoding utf8
+    @{ Processes = $processes; StartedAt = (Get-Date).ToString('o'); Mode = 'SIMULATED'; FrontendPort = $frontendPort } | ConvertTo-Json -Depth 4 | Set-Content $statePath -Encoding utf8
 }
 function Seed-DemoUsers {
     $password = 'NetMindDemo!2026'
@@ -124,9 +134,10 @@ try {
     Require-Command docker 'install Docker Desktop from https://www.docker.com/products/docker-desktop/.'
     Get-PythonVersion; Get-NodeVersion
     if ($Lab) { Fail '-Lab is not configured in this repository. This Windows host uses the clearly-labelled SIMULATED controller mode; do not claim Mininet support.' }
-    if (Test-AlreadyRunning) { Write-Host 'NetMind is already running (idempotent start).'; if (-not $NoBrowser) { Start-Process 'http://127.0.0.1:5173' }; exit 0 }
+    if (Test-AlreadyRunning) { $saved = Get-Content -Raw $statePath | ConvertFrom-Json; $url = "http://127.0.0.1:$($saved.FrontendPort)"; Write-Host "NetMind is already running (idempotent start): $url"; if (-not $NoBrowser) { Start-Process $url }; exit 0 }
     if (Test-Path $statePath) { & (Join-Path $root 'stop.ps1') }
     Assert-PortsFree
+    $frontendPort = Resolve-FrontendPort
     & docker version --format '{{.Server.Version}}' | Out-Null
     if ($LASTEXITCODE -ne 0) { Fail 'Docker Desktop is installed but not running. Fix: start Docker Desktop and wait for "Engine running".' }
     if ($Check) { Write-Host 'Preflight passed. No services were started. Mode: SIMULATED (Windows host).'; exit 0 }
@@ -161,21 +172,21 @@ try {
     $tracked += Start-Tracked 'backend' $venvPython @('-m','uvicorn','app.main:app','--host','127.0.0.1','--port','8000','--app-dir','backend')
     Write-LauncherState $tracked
     Wait-Http 'http://127.0.0.1:8000/health' 'API'
-    $tracked += Start-Tracked 'frontend' 'cmd.exe' @('/d','/c','npm run dev --prefix frontend -- --host 127.0.0.1 --port 5173 --strictPort')
+    $tracked += Start-Tracked 'frontend' 'cmd.exe' @('/d','/c',"npm run dev --prefix frontend -- --host 127.0.0.1 --port $frontendPort --strictPort")
     Write-LauncherState $tracked
-    Wait-Http 'http://127.0.0.1:5173/' 'Frontend'
+    Wait-Http "http://127.0.0.1:$frontendPort/" 'Frontend'
     $tracked += Start-Tracked 'controller' $venvPython @('simulation-controller/topology/controller.py')
     Write-LauncherState $tracked
     Wait-Port 8765 'Controller'
     Write-LauncherState $tracked
     Write-Host "`nNetMind is ready (SIMULATED mode)."
     @(
-        [pscustomobject]@{ Service='Frontend'; URL='http://127.0.0.1:5173'; Status='healthy' },
+        [pscustomobject]@{ Service='Frontend'; URL="http://127.0.0.1:$frontendPort"; Status='healthy' },
         [pscustomobject]@{ Service='API'; URL='http://127.0.0.1:8000/health'; Status='healthy' },
         [pscustomobject]@{ Service='Firebase Auth'; URL='http://127.0.0.1:9099'; Status='listening' },
         [pscustomobject]@{ Service='Controller'; URL='127.0.0.1:8765'; Status='listening' }
     ) | Format-Table -AutoSize
-    if (-not $NoBrowser) { Start-Process 'http://127.0.0.1:5173' }
+    if (-not $NoBrowser) { Start-Process "http://127.0.0.1:$frontendPort" }
 } catch {
     Write-Error $_
     if (Test-Path $statePath) { & (Join-Path $root 'stop.ps1') }

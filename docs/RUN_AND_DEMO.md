@@ -38,6 +38,8 @@ When ready, the launcher prints a healthy service table, opens the browser, and 
 | PostgreSQL | `127.0.0.1:5432` |
 | Controller | `127.0.0.1:8765` (token-only, not browser-facing) |
 
+If another local project already owns frontend port `5173`, the launcher reports its process/PID and uses `http://127.0.0.1:5174` instead.
+
 The launcher seeds these local emulator accounts with password `NetMindDemo!2026`: `viewer@netmind.local`, `operator@netmind.local`, `approver@netmind.local`, and `admin@netmind.local`. Current v0.1.0 has no login screen wired into the routes, so these accounts are available for API/auth verification rather than a browser sign-in flow.
 
 Useful switches: `./run.ps1 -Check` performs only prerequisites/port checks; `-NoBrowser` does not open a tab; `-Reset` asks for `RESET`, deletes the local Compose volume, then starts fresh; `-Stop` is equivalent to `./stop.ps1`. `-Lab` fails clearly because this repository has no configured WSL/VM Mininet adapter.
