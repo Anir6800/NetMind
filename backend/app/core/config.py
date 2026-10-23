@@ -10,6 +10,7 @@ class Settings(BaseSettings):
     environment: str = "development"
     database_url: str = "postgresql+psycopg://netmind_app:netmind_app_local@127.0.0.1:5432/netmind"
     auth_allow_unsigned: bool = False
+    approval_hmac_key: str = "local-development-key-change-me"
     nvidia_api_key: str | None = Field(default=None, validation_alias="NVIDIA_API_KEY")
     nvidia_model: str = "nvidia/nemotron-3-ultra-550b-a55b"
     nvidia_fallback_model: str = "meta/muse-glimmer-30b"

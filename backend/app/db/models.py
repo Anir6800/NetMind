@@ -64,8 +64,14 @@ class Approval(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     plan_id: Mapped[int] = mapped_column(ForeignKey("recovery_plans.id", ondelete="CASCADE"), nullable=False)
     approver_uid: Mapped[str] = mapped_column(String(128), nullable=False)
+    proposer_uid: Mapped[str] = mapped_column(String(128), nullable=False, default="system")
+    plan_hash: Mapped[str] = mapped_column(String(64), nullable=False, default="")
+    expires_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False, server_default=func.now())
+    nonce: Mapped[str] = mapped_column(String(128), nullable=False, unique=True)
+    signature: Mapped[str] = mapped_column(String(64), nullable=False, default="")
     state: Mapped[str] = mapped_column(String(20), default="pending", nullable=False)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
 class AuditEvent(Base):
