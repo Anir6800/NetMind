@@ -11,3 +11,5 @@ The Recovery Center deliberately has no one-click execution path: reviewers must
 Incident details link to the Recovery Center for bounded proposal review; the link cannot execute a controller action.
 
 Run `npm run test:e2e` for the deterministic fixture smoke flow. It intercepts backend calls, checks the `SIMULATED`, live API, and offline mode labels, and verifies recovery remains consent-gated.
+
+Monitoring reads `/telemetry/latest`. Each metric requires `source` (`MEASURED` or `SIMULATED`), `sampled_at`, and `ttl_seconds`; the UI derives and visibly marks stale samples rather than presenting them as live.

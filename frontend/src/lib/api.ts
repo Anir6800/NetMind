@@ -3,6 +3,7 @@ export type TopologyNode = { id: string; type: string; interfaces: { id: string;
 export type Topology = { version: string; nodes: TopologyNode[]; links: { id: string; a: { node_id: string }; b: { node_id: string }; state: "up" | "down" | "degraded" }[] };
 export type TopologyResponse = { topology: Topology; source: "SIMULATED"; last_updated: string };
 export type CopilotAnswer = { answer: string; citation_ids: string[]; source: string; cloud_api_called: boolean; offline: boolean };
+export type TelemetryMetric = { name: string; value: number | null; unit: string; source: "MEASURED" | "SIMULATED"; sampled_at: string; ttl_seconds: number; state: "FRESH" | "STALE" };
 export type Incident = { id: number; network_id: number; title: string; severity: string; state: string; created_at?: string; evidence?: unknown; timeline?: { event_type?: string; created_at?: string; payload?: unknown }[]; diagnosis?: { summary?: string; probable_cause?: string; confidence?: number } };
 
 export async function getIncidents(): Promise<Incident[]> {
@@ -27,6 +28,12 @@ export async function getTopology(): Promise<TopologyResponse> {
   const response = await fetch("/networks/1/topology");
   if (!response.ok) throw new Error("Topology unavailable");
   return response.json() as Promise<TopologyResponse>;
+}
+
+export async function getTelemetry(): Promise<TelemetryMetric[]> {
+  const response = await fetch("/telemetry/latest");
+  if (!response.ok) throw new Error("Telemetry unavailable");
+  return (await response.json() as { metrics: TelemetryMetric[] }).metrics;
 }
 
 export async function askCopilot(incidentId: number, question: string): Promise<CopilotAnswer> {

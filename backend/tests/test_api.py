@@ -6,6 +6,7 @@ from sqlalchemy.pool import StaticPool
 from app.db.models import Base
 from app.db.session import get_session
 from app.main import app
+from app.api.telemetry import store as telemetry_store
 from app.repositories.audit import AuditRepository
 from app.repositories.incidents import IncidentsRepository
 from app.repositories.networks import NetworksRepository
@@ -65,3 +66,12 @@ def test_openapi_contract_declares_typed_paginated_routes() -> None:
     paths = app.openapi()["paths"]
     assert paths["/networks"]["get"]["responses"]["200"]["content"]
     assert {item["name"] for item in paths["/incidents"]["get"]["parameters"]} >= {"limit", "offset"}
+
+
+def test_telemetry_endpoint_labels_metric_source_and_age_fields() -> None:
+    telemetry_store.samples.clear()
+    telemetry_store.ingest({"source": "SIMULATED", "monotonic_time": 1, "wall_time": 1_700_000_000, "rtt_ms": 8, "loss_pct": None})
+    with client() as api:
+        metric = api.get("/telemetry/latest").json()["metrics"][0]
+    assert metric == {"name": "Round-trip time", "value": 8.0, "unit": "ms", "source": "SIMULATED", "sampled_at": "2023-11-14T22:13:20Z", "ttl_seconds": 15.0, "state": "STALE"}
+    telemetry_store.samples.clear()

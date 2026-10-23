@@ -2,7 +2,7 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI
 
-from app.api import audit, copilot, events, incidents, networks, recovery
+from app.api import audit, copilot, events, incidents, networks, recovery, telemetry
 from app.core.auth import verify_token
 from app.core.config import get_settings
 
@@ -14,6 +14,7 @@ app.include_router(audit.router)
 app.include_router(copilot.router)
 app.include_router(events.router)
 app.include_router(recovery.router)
+app.include_router(telemetry.router)
 
 
 @app.get("/health")

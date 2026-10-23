@@ -8,6 +8,7 @@ test.beforeEach(async ({ page }) => {
   await page.route("**/incidents", (route) => route.request().resourceType() === "fetch" ? route.fulfill({ json: [incident] }) : route.continue());
   await page.route("**/incidents/1", (route) => route.request().resourceType() === "fetch" ? route.fulfill({ json: incident }) : route.continue());
   await page.route("**/copilot/questions", (route) => route.fulfill({ json: { answer: "Cloud diagnosis is unavailable. Manual runbook: No automatic action is proposed.", citation_ids: ["audit:1"], source: "OFFLINE_READ_ONLY", cloud_api_called: false, offline: true } }));
+  await page.route("**/telemetry/latest", (route) => route.fulfill({ json: { metrics: [{ name: "Round-trip time", value: 8, unit: "ms", source: "MEASURED", sampled_at: new Date().toISOString(), ttl_seconds: 15, state: "FRESH" }, { name: "Packet loss", value: 10, unit: "%", source: "SIMULATED", sampled_at: new Date(Date.now() - 16_000).toISOString(), ttl_seconds: 15, state: "STALE" }] } }));
 });
 
 test("fixture flow keeps recovery reviewed and mode-labelled", async ({ page }) => {
@@ -36,4 +37,10 @@ test("fixture flow keeps recovery reviewed and mode-labelled", async ({ page }) 
   await page.getByRole("button", { name: "Ask copilot" }).click();
   await expect(page.getByText("Cloud diagnosis unavailable — read-only outage mode. No automatic action is proposed.")).toBeVisible();
   await expect(page.getByText("OFFLINE_READ_ONLY")).toBeVisible();
+
+  await page.goto("/monitoring");
+  await expect(page.getByTestId("metric-Round-trip time")).toContainText("MEASURED · MININET");
+  await expect(page.getByTestId("metric-Round-trip time")).toContainText("FRESH");
+  await expect(page.getByTestId("metric-Packet loss")).toContainText("SIMULATED · FALLBACK");
+  await expect(page.getByTestId("metric-Packet loss")).toContainText("STALE — older than 15s TTL");
 });
