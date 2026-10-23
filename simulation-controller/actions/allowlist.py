@@ -2,7 +2,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
-VERBS = {"set_link_state", "set_netem", "replace_route", "clear_netem"}
+VERBS = {"set_link_state", "set_netem", "replace_route", "clear_netem", "restore_link", "reroute_via", "throttle_flow", "clear_throttle"}
 
 
 @dataclass(frozen=True)
@@ -21,7 +21,19 @@ class Allowlist:
     def validate(self, verb: str, params: dict) -> Command:
         if verb not in VERBS:
             raise ValueError("operation is not allowlisted")
-        if verb == "set_link_state":
+        if verb == "restore_link":
+            if set(params) != {"link_id", "expected_state", "target_state"} or params["link_id"] not in self.links or params["expected_state"] != "down" or params["target_state"] != "up":
+                raise ValueError("restore_link requires a known down link and up target")
+        elif verb == "reroute_via":
+            if set(params) != {"source", "destination", "alternate_path"} or not isinstance(params["alternate_path"], list) or not 2 <= len(params["alternate_path"]) <= 8 or params["source"] not in self.hosts or params["destination"] not in self.hosts or params["source"] == params["destination"]:
+                raise ValueError("reroute_via requires two known distinct hosts and a bounded path")
+        elif verb == "throttle_flow":
+            if set(params) != {"flow_id", "rate_mbps"} or not isinstance(params["flow_id"], str) or not isinstance(params["rate_mbps"], (int, float)) or isinstance(params["rate_mbps"], bool) or not 0 < params["rate_mbps"] <= 1000:
+                raise ValueError("throttle_flow requires a bounded positive rate")
+        elif verb == "clear_throttle":
+            if set(params) != {"flow_id"} or not isinstance(params["flow_id"], str):
+                raise ValueError("clear_throttle requires a flow ID")
+        elif verb == "set_link_state":
             self._link(params)
             if params.get("state") not in {"up", "down"}:
                 raise ValueError("link state must be up or down")
