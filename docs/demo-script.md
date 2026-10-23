@@ -6,6 +6,8 @@ Start the local stack and run `bash scripts/check-netmind.sh`. Prepare one deter
 
 Do not invent a latency, loss percentage, timestamp, MTTD, MTTR, plan hash, or successful recovery. Read the values shown by the current run. If a required screen or evidence item is unavailable, say so and stop at that boundary.
 
+The committed screenshot pack in `docs/evidence/screenshots/` is fixture-backed UI evidence. It is explicitly labelled `SIMULATED`, `OFFLINE_READ_ONLY`, or `STALE` as appropriate and is not a substitute for a live controller-run audit export.
+
 ## 0:00–0:30 — Ground truth and detection
 
 1. Open **Simulation Lab** and select **Link down**. Say: “This is a deterministic simulated fault. The browser is not privileged to operate the controller.”
