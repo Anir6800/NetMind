@@ -55,6 +55,12 @@ def test_audit_verify_endpoint_detects_tampering() -> None:
         assert api.get("/audit/verify").json() == {"valid": False, "invalid_event_id": 1}
 
 
+def test_event_poll_resumes_after_last_event_id() -> None:
+    with client(tamper_audit=True) as api:
+        assert api.get("/events/poll").json()[0]["id"] == 1
+        assert api.get("/events/poll?last_event_id=1").json() == []
+
+
 def test_openapi_contract_declares_typed_paginated_routes() -> None:
     paths = app.openapi()["paths"]
     assert paths["/networks"]["get"]["responses"]["200"]["content"]
