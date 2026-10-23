@@ -3,10 +3,10 @@ from sqlalchemy import create_engine, text
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
+from app.api.telemetry import store as telemetry_store
 from app.db.models import Base
 from app.db.session import get_session
 from app.main import app
-from app.api.telemetry import store as telemetry_store
 from app.repositories.audit import AuditRepository
 from app.repositories.incidents import IncidentsRepository
 from app.repositories.networks import NetworksRepository

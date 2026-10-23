@@ -1,6 +1,7 @@
 import json
+from collections.abc import Iterator
 from time import sleep
-from typing import Annotated, Iterator
+from typing import Annotated
 
 from fastapi import APIRouter, Depends, Header, Query
 from fastapi.responses import StreamingResponse

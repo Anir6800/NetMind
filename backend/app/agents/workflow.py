@@ -5,7 +5,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 from time import monotonic
-from typing import Any
+from typing import Any, ClassVar
 
 from pydantic import BaseModel, Field
 
@@ -36,7 +36,7 @@ class WorkflowConfig:
 
 
 class AgentWorkflow:
-    _memory_states: dict[int, WorkflowState] = {}
+    _memory_states: ClassVar[dict[int, WorkflowState]] = {}
 
     def __init__(self, config: WorkflowConfig | None = None) -> None:
         self.config = config or WorkflowConfig()

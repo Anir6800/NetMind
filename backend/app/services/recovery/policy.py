@@ -3,7 +3,6 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
-from typing import Literal
 
 from app.schemas.network import LinkState, Topology
 from app.schemas.recovery import RecoveryPlan
@@ -58,7 +57,7 @@ class RecoveryPolicy:
         return PolicyDecision(not reasons, tuple(reasons), tuple(sorted(affected)))
 
     def _what_if(self, action: object, topology: Topology, reasons: list[Denial]) -> set[str]:
-        if getattr(action, "action") == "restore_link":
+        if action.action == "restore_link":
             link = next((link for link in topology.links if link.id == action.link_id), None)
             if link is None:
                 reasons.append(Denial("unknown_link", "restore_link references an unknown link"))
@@ -66,16 +65,16 @@ class RecoveryPolicy:
             if link.state is not LinkState.DOWN:
                 reasons.append(Denial("precondition_failed", "link is not down"))
             return {link.a.node_id, link.b.node_id}
-        if getattr(action, "action") == "reroute_via":
+        if action.action == "reroute_via":
             nodes = self._path_nodes(action.source, action.destination, action.alternate_path, topology)
             if not nodes:
                 reasons.append(Denial("forwarding_loop", "alternate path is disconnected or loops"))
             return set(nodes)
-        if getattr(action, "action") == "throttle_flow":
+        if action.action == "throttle_flow":
             if action.rate_mbps > 1000:
                 reasons.append(Denial("parameter_out_of_bounds", "flow rate exceeds 1000 Mbps"))
             return set()
-        if getattr(action, "action") == "clear_throttle":
+        if action.action == "clear_throttle":
             return set()
         reasons.append(Denial("unknown_action", "action is not supported by policy"))
         return set()

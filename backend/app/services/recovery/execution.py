@@ -8,7 +8,8 @@ from typing import Protocol
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
-from app.db.models import Approval, Network, RecoveryExecution, RecoveryPlan as StoredPlan
+from app.db.models import Approval, Network, RecoveryExecution
+from app.db.models import RecoveryPlan as StoredPlan
 from app.repositories.audit import AuditRepository
 from app.schemas.recovery import RecoveryPlan, RestoreLink
 

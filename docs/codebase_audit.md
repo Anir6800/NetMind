@@ -1,13 +1,25 @@
 # Codebase audit
 
-Date: 2026-10-22
+Date: 2026-10-23
 
-The project began as an empty workspace. The current baseline has one standard-library Python probe, one recorded capability matrix, and setup documentation. There are no application callers, test suite, build system, backend, or cloud deployment files to migrate.
+## Dependency and secret review
 
-Verification completed:
+- `backend/requirements.lock` pins the runtime and development dependency closure resolved from `backend/pyproject.toml`; `frontend/package-lock.json` is present and pins the Node dependency tree.
+- No credential-bearing `.env`, service-account JSON, PEM, key, or P12 files are tracked. The tracked configuration references variable names only. Local `.env` remains ignored.
+- `python -m pip check` reports no broken installed requirements.
 
-- `python -m py_compile scripts/probe_capabilities.py`
-- `python scripts/probe_capabilities.py`
-- Probe selected `SIMULATED` on Windows 11 because Linux networking tools and privileges are unavailable.
+## Known limits and follow-up bugs
 
-Known gap: end-to-end MVP application behavior cannot be tested until an application backend exists.
+1. `GET /telemetry/latest` returns no metrics until a controller collector feeds the in-memory telemetry store. It correctly avoids inventing live values, but collector-to-backend transport is not implemented.
+2. `simulation-controller/topology/controller.py` only derives state keys for legacy link/netem commands. Newly allowlisted typed commands such as `restore_link` need state-key support before they are sent through the direct JSON-RPC controller; current recovery tests use the bounded adapter contract instead.
+3. The Vite production build emits a non-blocking warning because its main bundle is about 546 kB minified. Code splitting is deferred until a measured frontend performance need exists.
+4. A real Mininet recovery and cloud-provider outage drill requires Linux networking capabilities, a running controller process, PostgreSQL, and optional provider credentials. Deterministic restart/idempotency and provider-fallback tests cover the same safety branches locally.
+
+## Verification recorded
+
+- Dependency resolution: `python -m pip install --dry-run --ignore-installed ".[dev]"`
+- Dependency consistency: `python -m pip check`
+- Backend tests: `python -m pytest`
+- Backend lint: `python -m ruff check .`
+- Frontend production build: `npm run build`
+- Frontend fixture smoke test: `npm run test:e2e`

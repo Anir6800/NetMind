@@ -59,5 +59,5 @@ class RecoveryPlan(BaseModel):
     def canonical_json(self) -> str:
         return json.dumps(self.model_dump(exclude={"plan_hash"}), sort_keys=True, separators=(",", ":"))
 
-    def with_hash(self) -> "RecoveryPlan":
+    def with_hash(self) -> RecoveryPlan:
         return self.model_copy(update={"plan_hash": hashlib.sha256(self.canonical_json().encode()).hexdigest()})

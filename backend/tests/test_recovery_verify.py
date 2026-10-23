@@ -4,7 +4,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from app.db.models import Approval, Base, Incident, Network, RecoveryPlan as StoredPlan
+from app.db.models import Approval, Base, Incident, Network
+from app.db.models import RecoveryPlan as StoredPlan
 from app.schemas.recovery import RecoveryPlan
 from app.services.recovery.execution import RecoveryExecutionService
 from app.services.recovery.verify import Baseline, Probe, RecoveryVerifier

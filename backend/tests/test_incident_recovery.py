@@ -5,7 +5,8 @@ from sqlalchemy import create_engine
 from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
-from app.db.models import Base, Incident, Network, RecoveryPlan as StoredPlan
+from app.db.models import Base, Incident, Network
+from app.db.models import RecoveryPlan as StoredPlan
 from app.repositories.audit import AuditRepository
 from app.schemas.network import Topology
 from app.schemas.recovery import RecoveryPlan

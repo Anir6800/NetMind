@@ -1,11 +1,10 @@
-from datetime import datetime, timedelta, timezone
 import random
+from datetime import datetime, timedelta, timezone
 
 import pytest
-
-from app.schemas.network import Topology
 from pydantic import ValidationError
 
+from app.schemas.network import Topology
 from app.schemas.recovery import RecoveryPlan
 from app.services.recovery.policy import PolicyContext, RecoveryPolicy
 
