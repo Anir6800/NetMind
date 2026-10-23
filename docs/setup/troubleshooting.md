@@ -13,9 +13,8 @@ It fails fast when PostgreSQL, FastAPI, Vite, the Firebase Auth emulator, or the
 | Component | Recovery |
 | --- | --- |
 | PostgreSQL | `docker compose restart postgres`, wait for `docker compose ps`, then rerun the audit. Restart FastAPI only if its existing database connection does not recover. |
-| API and frontend | Stop `scripts/dev-netmind.sh` with `Ctrl-C`, then rerun it. Its process-group trap cleans up its child processes. |
-| Firebase Auth emulator | Stop `firebase emulators:start --only auth`, start it again, then rerun the audit. Local emulator tokens need to be refreshed after restart. |
-| Controller | Stop only the independent controller process, then restart it from `simulation-controller` with the same `NETMIND_CONTROLLER_TOKEN`. Rerun the audit. Never expose its loopback port. |
+| API, frontend, Auth emulator, and controller | Stop `scripts/dev-netmind.sh` with `Ctrl-C`, then rerun it with `NETMIND_CONTROLLER_TOKEN` exported. It stops only the child processes it started. Local emulator tokens need to be refreshed after restart. |
+| Controller only | Restart it from `simulation-controller` with the same `NETMIND_CONTROLLER_TOKEN`, then rerun the audit. Never expose its loopback port. |
 | Optional NVIDIA diagnosis | Remove the exported key or let a timeout occur; the circuit breaker switches to deterministic read-only mode. Restore connectivity/key and retry a new question. |
 
 To remove local database state intentionally, run `docker compose down -v`. This deletes the PostgreSQL volume; do not use it while preserving demo incidents or audit evidence matters.
