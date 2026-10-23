@@ -156,6 +156,8 @@ try {
     Push-Location (Join-Path $root 'backend')
     try { & $venvPython -m alembic upgrade head } finally { Pop-Location }
     if ($LASTEXITCODE -ne 0) { Fail 'Database migration failed. Fix: read the migration output above and docker compose logs postgres.' }
+    & $venvPython (Join-Path $root 'scripts\seed_demo_data.py')
+    if ($LASTEXITCODE -ne 0) { Fail 'Demo data seeding failed. Fix: read the output above, then rerun after checking PostgreSQL.' }
     $tracked = @()
     $tracked += Start-Tracked 'firebase' 'cmd.exe' @('/c', 'firebase emulators:start --only auth --project demo-netmind')
     Write-LauncherState $tracked
