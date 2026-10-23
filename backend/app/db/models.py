@@ -74,6 +74,22 @@ class Approval(Base):
     consumed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
 
 
+class RecoveryExecution(Base):
+    __tablename__ = "recovery_executions"
+    __table_args__ = (UniqueConstraint("idempotency_key"), Index("ix_recovery_executions_network_state", "network_id", "state"))
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True)
+    network_id: Mapped[int] = mapped_column(ForeignKey("networks.id", ondelete="CASCADE"), nullable=False)
+    plan_id: Mapped[int] = mapped_column(ForeignKey("recovery_plans.id", ondelete="CASCADE"), nullable=False)
+    idempotency_key: Mapped[str] = mapped_column(String(128), nullable=False)
+    state: Mapped[str] = mapped_column(String(20), nullable=False, default="executing")
+    action: Mapped[str] = mapped_column(String, nullable=False)
+    rollback: Mapped[str] = mapped_column(String, nullable=False)
+    deadline: Mapped[datetime] = mapped_column(DateTime(timezone=True), nullable=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now(), nullable=False)
+    completed_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), nullable=True)
+
+
 class AuditEvent(Base):
     __tablename__ = "audit_events"
 
