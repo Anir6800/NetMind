@@ -7,7 +7,7 @@ ROOT = Path(__file__).parents[2]
 sys.path.insert(0, str(ROOT / "simulation-controller"))
 
 from actions.allowlist import Allowlist
-from topology.controller import Controller
+from topology.controller import Controller, LOOPBACK_ADDRESS, _request, _safe_log
 
 
 @pytest.fixture
@@ -34,3 +34,13 @@ def test_controller_rejects_unknown_interface(controller: Controller) -> None:
 def test_controller_never_uses_shell_true() -> None:
     forbidden = "shell" + "=True"
     assert forbidden not in "\n".join(path.read_text() for path in (ROOT / "simulation-controller").rglob("*.py"))
+
+
+def test_controller_binds_loopback_and_rejects_malformed_requests() -> None:
+    assert LOOPBACK_ADDRESS[0] == "127.0.0.1"
+    with pytest.raises(ValueError):
+        _request({"token": "token", "method": ["not-a-method"], "params": {}})
+
+
+def test_rejection_logs_cannot_inject_lines() -> None:
+    assert _safe_log("bad\nforged") == "bad\\nforged"

@@ -2,7 +2,9 @@
 from __future__ import annotations
 
 import json
+import logging
 import os
+import secrets
 import socketserver
 import subprocess
 import sys
@@ -10,6 +12,29 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).parents[1]))
 from actions.allowlist import Allowlist, Command
+
+logger = logging.getLogger(__name__)
+MAX_REQUEST_BYTES = 16_384
+LOOPBACK_ADDRESS = ("127.0.0.1", 8765)
+
+
+def _safe_log(value: object) -> str:
+    return str(value).replace("\r", "\\r").replace("\n", "\\n")[:256]
+
+
+def _request(value: object) -> tuple[object, str, dict, str]:
+    if not isinstance(value, dict) or not isinstance(value.get("method"), str) or not isinstance(value.get("params", {}), dict) or not isinstance(value.get("token"), str):
+        raise ValueError("request must contain token, method, and object params")
+    return value.get("id"), value["method"], value.get("params", {}), value["token"]
+
+
+def _drop_privileges() -> None:
+    uid = os.environ.get("NETMIND_CONTROLLER_UID")
+    if uid and os.name == "posix" and os.geteuid() == 0:
+        gid = os.environ.get("NETMIND_CONTROLLER_GID", uid)
+        os.setgroups([])
+        os.setgid(int(gid))
+        os.setuid(int(uid))
 
 
 class Controller:
@@ -48,13 +73,16 @@ class RpcHandler(socketserver.StreamRequestHandler):
 
     def handle(self) -> None:
         try:
-            request = json.loads(self.rfile.readline())
-            if request.get("token") != self.token:
+            raw = self.rfile.readline(MAX_REQUEST_BYTES + 1)
+            if len(raw) > MAX_REQUEST_BYTES:
+                raise ValueError("request exceeds size limit")
+            request_id, method, params, token = _request(json.loads(raw))
+            if not secrets.compare_digest(token, self.token):
                 raise PermissionError("invalid token")
-            result = self.controller.execute(request["method"], request.get("params", {}))
-            response = {"id": request.get("id"), "result": result}
-        except (KeyError, PermissionError, ValueError, subprocess.SubprocessError) as exc:
-            response = {"error": str(exc)}
+            response = {"id": request_id, "result": self.controller.execute(method, params)}
+        except (json.JSONDecodeError, PermissionError, TypeError, ValueError, subprocess.SubprocessError) as exc:
+            logger.warning("controller request rejected: %s", _safe_log(exc))
+            response = {"error": "invalid controller request"}
         self.wfile.write((json.dumps(response) + "\n").encode())
 
 
@@ -63,9 +91,10 @@ def serve() -> None:
     if not token:
         raise RuntimeError("NETMIND_CONTROLLER_TOKEN is required")
     root = Path(__file__).parents[2]
+    _drop_privileges()
     RpcHandler.controller = Controller(Allowlist(root / "data/topologies/demo_six_nodes.json"))
     RpcHandler.token = token
-    with socketserver.ThreadingTCPServer(("127.0.0.1", 8765), RpcHandler) as server:
+    with socketserver.ThreadingTCPServer(LOOPBACK_ADDRESS, RpcHandler) as server:
         server.serve_forever()
 
 
