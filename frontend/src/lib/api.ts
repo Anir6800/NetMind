@@ -2,7 +2,7 @@ export type Health = { status: string; environment: string };
 export type TopologyNode = { id: string; type: string; interfaces: { id: string; address: string }[] };
 export type Topology = { version: string; nodes: TopologyNode[]; links: { id: string; a: { node_id: string }; b: { node_id: string }; state: "up" | "down" | "degraded" }[] };
 export type TopologyResponse = { topology: Topology; source: "SIMULATED"; last_updated: string };
-export type CopilotAnswer = { answer: string; citation_ids: string[]; source: string; cloud_api_called: boolean };
+export type CopilotAnswer = { answer: string; citation_ids: string[]; source: string; cloud_api_called: boolean; offline: boolean };
 export type Incident = { id: number; network_id: number; title: string; severity: string; state: string; created_at?: string; evidence?: unknown; timeline?: { event_type?: string; created_at?: string; payload?: unknown }[]; diagnosis?: { summary?: string; probable_cause?: string; confidence?: number } };
 
 export async function getIncidents(): Promise<Incident[]> {

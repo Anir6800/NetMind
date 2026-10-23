@@ -27,8 +27,9 @@ def test_copilot_cites_stored_audit_evidence_only() -> None:
     try:
         answer = copilot.ask(7, "What evidence supports the incident?")
         assert answer.citation_ids == ["audit:1"]
-        assert answer.source == "OFFLINE_FIXTURE"
+        assert answer.source == "OFFLINE_READ_ONLY"
         assert answer.cloud_api_called is False
+        assert answer.offline is True
     finally:
         session.close()
 
@@ -54,4 +55,18 @@ def test_copilot_endpoint_returns_citations() -> None:
         assert response.json()["citation_ids"] == ["audit:1"]
     finally:
         app.dependency_overrides.clear()
+        session.close()
+
+
+def test_blocked_cloud_host_uses_deterministic_read_only_runbook() -> None:
+    session, _ = service()
+    def blocked(_: dict, __: str): raise ConnectionError("cloud host blocked")
+    copilot = CopilotService(session, NvidiaClient(Settings(nvidia_api_key="key", nvidia_failure_threshold=1), requester=blocked))
+    try:
+        answer = copilot.ask(7, "What should I review?")
+        assert answer.source == "OFFLINE_READ_ONLY"
+        assert answer.offline is True
+        assert "Manual runbook" in answer.answer
+        assert "automatic action" in answer.answer
+    finally:
         session.close()

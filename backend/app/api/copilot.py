@@ -22,6 +22,7 @@ class CopilotResponse(BaseModel):
     citation_ids: list[str]
     source: str
     cloud_api_called: bool
+    offline: bool
 
 
 def get_copilot_service(session: Annotated[Session, Depends(get_session)]) -> CopilotService:

@@ -9,6 +9,7 @@ from sqlalchemy.orm import Session
 
 from app.integrations.nvidia_client import NvidiaClient
 from app.repositories.audit import AuditRepository
+from app.services.ai.fallback import summarize
 
 EXECUTION_PATTERN = re.compile(r"\b(run|execute|launch|shell|ssh|curl|wget|docker|ip|tc|ovs-vsctl)\b", re.IGNORECASE)
 
@@ -19,6 +20,7 @@ class CopilotAnswer:
     citation_ids: list[str]
     source: str
     cloud_api_called: bool
+    offline: bool = False
 
 
 class CopilotService:
@@ -34,6 +36,9 @@ class CopilotService:
         if not evidence:
             return CopilotAnswer("No stored evidence is available for this incident.", [], "LOCAL_EVIDENCE", False)
         diagnosis = self.client.diagnose({"question": question, "incident_evidence": evidence})
+        if diagnosis.offline:
+            fallback = summarize(evidence)
+            return CopilotAnswer(f"{fallback.summary} Manual runbook: {' '.join(fallback.runbook)}", citations, "OFFLINE_READ_ONLY", False, True)
         return CopilotAnswer(diagnosis.summary, citations, diagnosis.source, diagnosis.source == "NVIDIA")
 
     def _evidence(self, incident_id: int) -> dict[str, dict]:
