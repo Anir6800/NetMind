@@ -25,7 +25,7 @@ Double-click **`run.bat`** in File Explorer, or from PowerShell run:
 
 PowerShell does not run `.ps1` files on double-click by default, so `run.bat` is the double-click wrapper. It invokes PowerShell with `-NoProfile -ExecutionPolicy Bypass` only for this repository script.
 
-On first run, the launcher creates `.venv`, installs locked Python/frontend dependencies, creates ignored `.env` from `.env.example` if needed, and asks once for an optional Gemini key without echoing it. Press Enter to use the labelled offline fallback. First run can take several minutes; later starts normally take under a minute because they use existing dependencies.
+On first run, the launcher creates `.venv`, installs locked Python/frontend dependencies, and creates ignored `.env` from `.env.example` if needed. It uses an existing `NVIDIA_API_KEY` without prompting. It asks once for Gemini only when neither provider key exists; press Enter then to use the labelled offline fallback. First run can take several minutes; later starts normally take under a minute because they use existing dependencies.
 
 When ready, the launcher prints a healthy service table, opens the browser, and writes service output to `logs/`. It never binds a service to `0.0.0.0`.
 

@@ -93,7 +93,8 @@ function Ensure-Env {
     $envPath = Join-Path $root '.env'
     if (-not (Test-Path $envPath)) { Copy-Item (Join-Path $root '.env.example') $envPath }
     $gemini = (Get-Content -LiteralPath $envPath | Where-Object { $_ -match '^GEMINI_API_KEY=' } | Select-Object -First 1)
-    if (-not $gemini -or $gemini -eq 'GEMINI_API_KEY=') {
+    $nvidia = (Get-Content -LiteralPath $envPath | Where-Object { $_ -match '^NVIDIA_API_KEY=' } | Select-Object -First 1)
+    if ((-not $gemini -or $gemini -eq 'GEMINI_API_KEY=') -and (-not $nvidia -or $nvidia -eq 'NVIDIA_API_KEY=')) {
         $secure = Read-Host 'Optional GEMINI_API_KEY (press Enter for labelled offline fallback)' -AsSecureString
         $bstr = [Runtime.InteropServices.Marshal]::SecureStringToBSTR($secure)
         try { $value = [Runtime.InteropServices.Marshal]::PtrToStringBSTR($bstr) } finally { [Runtime.InteropServices.Marshal]::ZeroFreeBSTR($bstr) }
