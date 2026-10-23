@@ -9,7 +9,7 @@ from pydantic import ValidationError
 
 from app.schemas.ai import AiDiagnosis
 
-ALLOWLIST_ACTION_IDS = {"clear_netem", "replace_route", "set_link_state", "set_netem"}
+ALLOWLIST_ACTION_IDS = {"clear_netem", "replace_route", "set_link_state", "set_netem", "restore_link", "reroute_via", "throttle_flow", "clear_throttle"}
 
 
 @dataclass(frozen=True)

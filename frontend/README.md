@@ -7,3 +7,5 @@ The incident center reads `/incidents` and `/incidents/:id`; select an incident 
 The incident list subscribes to `/events` over SSE and resumes from the last event ID. If the stream is unavailable it polls `/events/poll` for up to 12 attempts before stopping, without interrupting the UI.
 
 The Recovery Center deliberately has no one-click execution path: reviewers must inspect the exact action and rollback, check consent, and type the confirmation phrase before it records an approval request.
+
+Incident details link to the Recovery Center for bounded proposal review; the link cannot execute a controller action.
