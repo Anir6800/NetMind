@@ -10,6 +10,8 @@ build/
 *.tsbuildinfo
 *.d.ts
 coverage/
+test-results/
+playwright-report/
 .pytest_cache/
 
 # Local configuration and secrets

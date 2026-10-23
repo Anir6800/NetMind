@@ -9,3 +9,5 @@ The incident list subscribes to `/events` over SSE and resumes from the last eve
 The Recovery Center deliberately has no one-click execution path: reviewers must inspect the exact action and rollback, check consent, and type the confirmation phrase before it records an approval request.
 
 Incident details link to the Recovery Center for bounded proposal review; the link cannot execute a controller action.
+
+Run `npm run test:e2e` for the deterministic fixture smoke flow. It intercepts backend calls, checks the `SIMULATED`, live API, and offline mode labels, and verifies recovery remains consent-gated.
