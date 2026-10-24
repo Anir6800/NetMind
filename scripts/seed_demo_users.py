@@ -21,7 +21,11 @@ def main() -> None:
         except auth.UserNotFoundError:
             user = auth.create_user(email=email, password=PASSWORD)
         auth.set_custom_user_claims(user.uid, {"role": role})
-    print("Demo accounts: viewer@netmind.local, operator@netmind.local, approver@netmind.local, admin@netmind.local")
+    try:
+        auth.get_user_by_email("student@netmind.local")
+    except auth.UserNotFoundError:
+        auth.create_user(email="student@netmind.local", password=PASSWORD)
+    print("Student account: student@netmind.local")
     print(f"Demo password: {PASSWORD}")
 
 

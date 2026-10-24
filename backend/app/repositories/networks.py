@@ -25,3 +25,6 @@ class NetworksRepository:
 
     def get(self, network_id: int) -> Network | None:
         return self.session.get(Network, network_id)
+
+    def delete(self, network: Network) -> None:
+        self.session.delete(network)

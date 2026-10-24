@@ -9,6 +9,6 @@ export function ProtectedRoute({ children, roles }: { children: React.ReactNode;
   const [ready, setReady] = useState(false);
   useEffect(() => onAuthStateChanged(auth, async (nextUser) => { setUser(nextUser); setRole(nextUser ? String((await nextUser.getIdTokenResult()).claims.role ?? "") : ""); setReady(true); }), []);
   if (!ready) return null;
-  if (!user) return <Navigate to="/" replace />;
-  return roles && (!role || !roles.includes(role)) ? <Navigate to="/" replace /> : <>{children}</>;
+  if (!user) return <Navigate to="/login" replace />;
+  return roles && (!role || !roles.includes(role)) ? <Navigate to="/login" replace /> : <>{children}</>;
 }

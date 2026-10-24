@@ -39,6 +39,17 @@ def test_network_and_incident_endpoints_return_typed_data() -> None:
         assert api.get("/incidents?limit=1").json()[0]["title"] == "Demo incident"
 
 
+def test_generates_and_persists_fifty_device_student_topology() -> None:
+    with client() as api:
+        response = api.post("/networks/generate", json={"name": "Campus lab", "category": "campus", "device_count": 50, "protocol": "ospf", "prompt": "Create 50 devices"})
+        assert response.status_code == 201
+        generated = response.json()
+        assert generated["source"] == "SIMULATED_AI_PLANNER"
+        assert len(generated["topology"]["nodes"]) == 50
+        network_id = generated["network"]["id"]
+        assert len(api.get(f"/networks/{network_id}/topology").json()["topology"]["nodes"]) == 50
+
+
 def test_incident_detail_includes_its_audit_evidence() -> None:
     with client() as api:
         session = next(iter(app.dependency_overrides[get_session]()))

@@ -8,6 +8,11 @@ class NodeType(str, Enum):
     ROUTER = "router"
     SWITCH = "switch"
     HOST = "host"
+    SERVER = "server"
+    HUB = "hub"
+    REPEATER = "repeater"
+    FIREWALL = "firewall"
+    ACCESS_POINT = "access-point"
 
 
 class LinkState(str, Enum):
@@ -25,6 +30,10 @@ class Node(BaseModel):
     id: str = Field(pattern=r"^[a-z0-9-]+$")
     type: NodeType
     interfaces: list[Interface] = Field(min_length=1)
+    x: float = 0
+    y: float = 0
+    processing_delay_ms: float = Field(default=0.2, ge=0)
+    routing_protocol: str = Field(default="static", pattern=r"^(static|rip|ospf)$")
 
     @model_validator(mode="after")
     def unique_interfaces(self) -> "Node":
@@ -44,6 +53,8 @@ class Link(BaseModel):
     b: LinkEnd
     capacity_mbps: int = Field(gt=0)
     delay_ms: float = Field(ge=0)
+    loss_pct: float = Field(default=0, ge=0, le=100)
+    jitter_ms: float = Field(default=0, ge=0)
     state: LinkState = LinkState.UP
 
 
@@ -74,7 +85,7 @@ class Topology(BaseModel):
                 raise ValueError("link endpoint must reference an existing interface")
             if link.a == link.b:
                 raise ValueError("link endpoints must differ")
-        host_ids = {node.id for node in self.nodes if node.type is NodeType.HOST}
+        host_ids = {node.id for node in self.nodes if node.type in {NodeType.HOST, NodeType.SERVER}}
         pairs: set[tuple[str, str]] = set()
         for path in self.expected_baseline_paths:
             pair = (path.source_host_id, path.destination_host_id)

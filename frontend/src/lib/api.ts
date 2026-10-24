@@ -1,7 +1,9 @@
 export type Health = { status: string; environment: string };
-export type TopologyNode = { id: string; type: string; interfaces: { id: string; address: string }[] };
-export type Topology = { version: string; nodes: TopologyNode[]; links: { id: string; a: { node_id: string }; b: { node_id: string }; state: "up" | "down" | "degraded" }[] };
+export type TopologyNode = { id: string; type: string; interfaces: { id: string; address: string }[]; x?: number; y?: number; processing_delay_ms?: number; routing_protocol?: "static" | "rip" | "ospf" };
+export type TopologyLink = { id: string; a: { node_id: string; interface_id?: string }; b: { node_id: string; interface_id?: string }; capacity_mbps: number; delay_ms: number; loss_pct?: number; jitter_ms?: number; state: "up" | "down" | "degraded" };
+export type Topology = { version: string; addressing_plan?: string; nodes: TopologyNode[]; links: TopologyLink[]; expected_baseline_paths?: { source_host_id: string; destination_host_id: string; link_ids: string[] }[] };
 export type TopologyResponse = { topology: Topology; source: "SIMULATED"; last_updated: string };
+export type NetworkSummary = { id: number; name: string; topology_version: string };
 export type CopilotAnswer = { answer: string; citation_ids: string[]; source: string; cloud_api_called: boolean; offline: boolean };
 export type TelemetryMetric = { name: string; value: number | null; unit: string; source: "MEASURED" | "SIMULATED"; sampled_at: string; ttl_seconds: number; state: "FRESH" | "STALE" };
 export type Incident = { id: number; network_id: number; title: string; severity: string; state: string; created_at?: string; evidence?: unknown; timeline?: { event_type?: string; created_at?: string; payload?: unknown }[]; diagnosis?: { summary?: string; probable_cause?: string; confidence?: number } };
@@ -24,10 +26,32 @@ export async function getHealth(): Promise<Health> {
   return response.json() as Promise<Health>;
 }
 
-export async function getTopology(): Promise<TopologyResponse> {
-  const response = await fetch("/networks/1/topology");
+export async function getTopology(id = 1): Promise<TopologyResponse> {
+  const response = await fetch(`/networks/${id}/topology`);
   if (!response.ok) throw new Error("Topology unavailable");
   return response.json() as Promise<TopologyResponse>;
+}
+
+export async function getNetworks(): Promise<NetworkSummary[]> {
+  const response = await fetch("/networks");
+  if (!response.ok) throw new Error("Networks unavailable");
+  return response.json() as Promise<NetworkSummary[]>;
+}
+
+export async function generateNetwork(input: { name: string; category: string; device_count: number; protocol: string; prompt?: string }): Promise<{ network: NetworkSummary; topology: Topology; source: string }> {
+  const response = await fetch("/networks/generate", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(input) });
+  if (!response.ok) throw new Error("Network generation failed");
+  return response.json();
+}
+
+export async function saveNetwork(id: number, name: string, topology: Topology): Promise<void> {
+  const response = await fetch(`/networks/${id}`, { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name, topology }) });
+  if (!response.ok) throw new Error("Network save failed");
+}
+
+export async function deleteNetwork(id: number): Promise<void> {
+  const response = await fetch(`/networks/${id}`, { method: "DELETE" });
+  if (!response.ok) throw new Error("Network delete failed");
 }
 
 export async function getTelemetry(): Promise<TelemetryMetric[]> {

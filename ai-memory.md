@@ -239,3 +239,12 @@
 - Scope: reproducible, fixture-backed captures of simulated lab/topology, incident evidence and diagnosis, approval gate, offline/read-only and stale labels, verified recovery, and rollback.
 - Observed: eight PNGs were generated in `docs/evidence/screenshots/` by `CAPTURE_UI_EVIDENCE=1 npm run test:e2e`. Every non-live state is visibly labelled; the evidence README and demo script explicitly state these are local API-shaped fixtures, not proof of a live controller run.
 - Verification: capture-mode Playwright E2E (2 passed); normal Playwright E2E (2 passed); frontend production build passed (existing >500 kB chunk warning only).
+
+## NM-STUDENT-SIM — Redesign as a student network simulator
+
+- Status: COMPLETE
+- Started: 2026-10-24
+- Scope: Replace the incident-first console with student login, saved/custom/generated topologies, 50-device labs, routing and packet simulation, realistic calculated timing, fault preview/confirmation, slow replay, logs, and an explain/suggest assistant.
+- Observed: the live local flow signed in as the seeded student, generated and persisted a 50-device OSPF campus lab, selected the midpoint link fault, previewed a 53.451 ms alternate path over the 10 Mbps backup, and confirmed execution. The event log recorded the 5000 ms OSPF convergence model and the changed route; the browser console had no errors or warnings.
+- Verification: full backend suite 129 passed; changed backend files passed Ruff; frontend production build passed with the existing >500 kB chunk warning; Playwright smoke test 1 passed; live browser generation, preview, confirmation, and timing/log display passed against PostgreSQL and the Firebase emulator.
+- Limits: routing and protocol behavior is an educational `SIMULATED` calculation, not a discrete-event implementation or physical packet capture. `SIMULATED_AI_PLANNER` is deterministic and local; it does not call NVIDIA/Gemini for topology generation.

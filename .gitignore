@@ -12,6 +12,7 @@ build/
 coverage/
 test-results/
 playwright-report/
+.playwright-cli/
 .pytest_cache/
 
 # Local configuration and secrets

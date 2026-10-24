@@ -21,6 +21,7 @@ class Network(Base):
     id: Mapped[int] = mapped_column(Integer, primary_key=True)
     name: Mapped[str] = mapped_column(String(100), unique=True, nullable=False)
     topology_version: Mapped[str] = mapped_column(String(20), nullable=False)
+    topology_data: Mapped[str] = mapped_column(String, nullable=False, default="")
     devices: Mapped[list["Device"]] = relationship(back_populates="network")
 
 
