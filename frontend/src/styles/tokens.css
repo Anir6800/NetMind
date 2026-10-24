@@ -1,36 +1,46 @@
 :root {
-  --nm-canvas: #10141c;
-  --nm-surface: #161b26;
-  --nm-surface-raised: #1c2331;
-  --nm-border: #1e2538;
-  --nm-text: #f8fafc;
-  --nm-text-muted: #94a3b8;
+  --nm-canvas: #0d1118;
+  --nm-canvas-deep: #090c12;
+  --nm-grid: #243049;
+  --nm-surface: #141a25;
+  --nm-surface-raised: #1b2331;
+  --nm-border: #232c40;
+  --nm-border-strong: #33405c;
+  --nm-text: #f4f7fb;
+  --nm-text-muted: #9fb0c8;
   --nm-primary: #0d9e96;
+  --nm-primary-hover: #2dd4bf;
+  --nm-primary-wash: #0f3433;
   --nm-accent: #38bdf8;
   --nm-violet: #8b5cf6;
-  --nm-primary-hover: #14b8a6;
-  --nm-primary-wash: #103536;
+  --nm-violet-soft: #c4b5fd;
+  --nm-violet-wash: #2a2147;
+  --nm-link-idle: #3d4a66;
   --nm-success: #10b981;
-  --nm-info: #3b82f6;
+  --nm-success-text: #4ade80;
   --nm-warning: #f59e0b;
   --nm-danger: #ef4444;
-  --nm-radius-control: 8px;
-  --nm-radius-panel: 12px;
-  --nm-space-1: 4px;
-  --nm-space-2: 8px;
-  --nm-space-3: 16px;
-  --nm-space-4: 24px;
-  --nm-space-5: 32px;
-  --nm-font-ui: Inter, system-ui, sans-serif;
-  --nm-font-data: "JetBrains Mono", ui-monospace, monospace;
+  --nm-danger-text: #f87171;
+  --nm-radius-control: 10px;
+  --nm-radius-panel: 14px;
+  --nm-font-ui: Inter, "Segoe UI", system-ui, sans-serif;
+  --nm-font-data: "JetBrains Mono", Consolas, ui-monospace, monospace;
 }
 
 [data-theme="light"] {
-  --nm-canvas: #f7f8fc;
+  --nm-canvas: #f4f6fb;
+  --nm-canvas-deep: #eef1f8;
+  --nm-grid: #cdd5e5;
   --nm-surface: #ffffff;
   --nm-surface-raised: #f1f4f9;
-  --nm-border: #e2e6f0;
+  --nm-border: #dde3ee;
+  --nm-border-strong: #c3cddf;
   --nm-text: #0f172a;
   --nm-text-muted: #475569;
-  --nm-primary-wash: #e3f7f5;
+  --nm-primary-wash: #dcf6f3;
+  --nm-violet-soft: #6d28d9;
+  --nm-violet-wash: #ede9fe;
+  --nm-link-idle: #94a3b8;
+  --nm-success-text: #15803d;
+  --nm-danger-text: #b91c1c;
 }

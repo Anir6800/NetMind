@@ -56,7 +56,7 @@ function Wait-Port([int]$port, [string]$name, [int]$seconds = 45) {
         if (Get-PortProcess $port) { return }
         Start-Sleep -Milliseconds 300
     } while ((Get-Date) -lt $until)
-    Fail "$name did not listen on 127.0.0.1:$port within $seconds seconds. Read logs\$($name.ToLower().Replace(' ', '-')).log."
+    Fail "$name did not listen on 127.0.0.1:$port within $seconds seconds. Read its log in logs\ (backend, frontend, firebase or controller .log/.err.log)."
 }
 function Wait-Http([string]$url, [string]$name, [int]$seconds = 45) {
     $until = (Get-Date).AddSeconds($seconds)
@@ -170,7 +170,7 @@ try {
     $tracked = @()
     $tracked += Start-Tracked 'firebase' 'cmd.exe' @('/c', 'firebase emulators:start --only auth --project demo-netmind')
     Write-LauncherState $tracked
-    Wait-Port 9099 'Firebase Auth'; Seed-DemoUsers $venvPython
+    Wait-Port 9099 'Firebase Auth' 120; Seed-DemoUsers $venvPython
     $tracked += Start-Tracked 'backend' $venvPython @('-m','uvicorn','app.main:app','--host','127.0.0.1','--port','8000','--app-dir','backend')
     Write-LauncherState $tracked
     Wait-Http 'http://127.0.0.1:8000/health' 'API'

@@ -1,38 +1,62 @@
 import { signOut } from "firebase/auth";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { Link, NavLink, Outlet, useMatch, useNavigate, useSearchParams } from "react-router-dom";
 import { ThemeToggle } from "../ui/ThemeToggle";
-import { StatusPill } from "../ui/StatusPill";
 import { auth } from "../../lib/firebase";
 
-const links = [["/", "My networks"]] as const;
+const panels = [
+  ["canvas", "Canvas", "⬡"],
+  ["simulate", "Simulate", "▶"],
+  ["tables", "Tables", "☰"],
+  ["logs", "Logs", "≡"],
+  ["ai", "AI", "✦"],
+] as const;
+
+function lastNetwork() {
+  try {
+    return localStorage.getItem("netmind-last-network");
+  } catch {
+    return null;
+  }
+}
 
 export function AppShell() {
   const navigate = useNavigate();
+  const inSimulator = useMatch("/simulator/:networkId");
+  const [params] = useSearchParams();
+  const networkId = inSimulator?.params.networkId ?? lastNetwork();
+  const active = inSimulator ? (params.get("panel") ?? "simulate") : "";
   return (
-    <div className="app-shell">
+    <div className={`app-shell${inSimulator ? " app-shell--studio" : ""}`}>
       <a className="skip-link" href="#content">
         Skip to content
       </a>
-      <header className="topbar">
-        <div className="brand">
-          NETMIND <span>LIVE LAB</span>
-        </div>
-        <span className="eyebrow">NETWORK DESIGN & SIMULATION STUDIO</span>
-      </header>
       <main id="content" className="page-content">
         <Outlet />
       </main>
       <nav className="bottom-pill" aria-label="Main navigation">
-        <div className="pill-brand">NM</div>
-        {links.map(([to, label]) => (
-          <NavLink key={to} to={to} end={to === "/"}>
-            {label}
-          </NavLink>
-        ))}
-        <StatusPill status="warning">SIMULATED</StatusPill>
+        <NavLink to="/" end className="pill-item">
+          <span aria-hidden="true">◫</span> Networks
+        </NavLink>
+        {panels.map(([panel, label, icon]) =>
+          networkId ? (
+            <Link
+              key={panel}
+              to={`/simulator/${networkId}?panel=${panel}`}
+              className={`pill-item${active === panel ? " active" : ""}`}
+              aria-current={active === panel ? "page" : undefined}
+            >
+              <span aria-hidden="true">{icon}</span> {label}
+            </Link>
+          ) : (
+            <span key={panel} className="pill-item is-disabled" aria-disabled="true" title="Open a network first">
+              <span aria-hidden="true">{icon}</span> {label}
+            </span>
+          ),
+        )}
+        <span className="pill-divider" aria-hidden="true" />
         <ThemeToggle />
         <button
-          className="pill-signout"
+          className="pill-item pill-signout"
           onClick={async () => {
             await signOut(auth);
             navigate("/login");

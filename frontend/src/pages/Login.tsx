@@ -37,7 +37,7 @@ export function Login() {
         <div className="login-features">
           <span>Static · RIP · OSPF</span>
           <span>ICMP · ARP · DHCP · DNS · TCP · UDP · HTTP</span>
-          <span>Realistic timing · slow-motion replay</span>
+          <span>Calculated timing · slow-motion replay · SIMULATED</span>
         </div>
       </section>
       <section className="login-card">

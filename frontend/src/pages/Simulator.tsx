@@ -1,684 +1,383 @@
-import { DragEvent, useEffect, useMemo, useState } from "react";
+import { DragEvent, KeyboardEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 import {
-  addEdge,
   Background,
-  Connection,
   Controls,
-  Handle,
-  NodeProps,
-  Position,
+  MiniMap,
   ReactFlow,
-  useEdgesState,
-  useNodesState,
+  ReactFlowProvider,
+  useReactFlow,
+  type Connection,
   type Edge,
+  type EdgeChange,
   type Node,
+  type NodeChange,
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
+import { getNetworks, getTopology, saveNetwork, type Topology, type TopologyLink, type TopologyNode } from "../lib/api";
+import { DEVICE_TYPES, DeviceSymbol, edgeTypes, nodeTypes, type DeviceData, type TrafficData } from "../features/sim/canvas";
+import { ImpactCard, Legend, LinkInspector, NodeInspector, Palette } from "../features/sim/panels";
 import {
-  getNetworks,
-  getTopology,
-  saveNetwork,
-  type Topology,
-  type TopologyLink,
-  type TopologyNode,
-} from "../lib/api";
+  PACKET_BYTES,
+  analyzeFlow,
+  applyFault,
+  compareImpact,
+  computeTables,
+  isL3,
+  labelOf,
+  reachability,
+  type Fault,
+  type FaultKind,
+  type Impact,
+  type Protocol,
+  type Tables,
+} from "../sim/engine";
 
-const deviceTypes = [
-  "router",
-  "switch",
-  "hub",
-  "repeater",
-  "host",
-  "server",
-  "firewall",
-  "access-point",
-];
-const packetSizes: Record<string, number> = {
-  ICMP: 64,
-  ARP: 42,
-  DHCP: 300,
-  DNS: 128,
-  TCP: 1500,
-  UDP: 512,
-  HTTP: 1500,
+export type Panel = "canvas" | "simulate" | "tables" | "logs" | "ai";
+type Menu = { kind: "node" | "link" | "pane"; id: string; x: number; y: number };
+type LogEntry = { at: string; source: "LIVE" | "PREVIEW" | "EDIT"; text: string };
+type History = { past: Topology[]; present: Topology | null; future: Topology[] };
+type EndpointFlow = { src: string; dst: string; app: string };
+
+const SHORT: Record<string, string> = {
+  router: "R",
+  switch: "SW",
+  hub: "HUB",
+  repeater: "REP",
+  host: "PC",
+  server: "SRV",
+  firewall: "FW",
+  "access-point": "AP",
 };
+const MAX_DEVICES = 50;
+const clock = () => new Date().toLocaleTimeString([], { hour12: false });
 
-function DeviceSymbol({ type }: { type: string }) {
-  const paths: Record<string, string> = {
-    router: "M4 12h16M7 8l-3 4 3 4m10-8 3 4-3 4",
-    switch: "M4 7h16v10H4zM8 10v4m4-4v4m4-4v4",
-    hub: "M12 4v16M4 12h16M6 6l12 12M18 6 6 18",
-    repeater: "M5 8h10l-3-3m3 3-3 3M19 16H9l3-3m-3 3 3 3",
-    host: "M4 5h16v11H4zM8 20h8M12 16v4",
-    server: "M5 4h14v16H5zM8 8h1m2 0h5M8 13h1m2 0h5",
-    firewall: "M4 5h16v14H4zM4 10h16M9 5v5m6 0v4m-6 0v5",
-    "access-point":
-      "M12 18v2m-4-6a6 6 0 0 1 8 0m-11-4a10 10 0 0 1 14 0m-7 6h.01",
-  };
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24">
-      <path d={paths[type] ?? paths.host} />
-    </svg>
+function freshSubnet(topology: Topology) {
+  const used = new Set(
+    topology.nodes.flatMap((node) => node.interfaces.map((item) => item.address.split(".").slice(0, 3).join("."))),
   );
+  for (let third = 1; third < 255; third += 1) if (!used.has(`10.20.${third}`)) return `10.20.${third}`;
+  return "10.21.0";
 }
 
-function DeviceNode({ data }: NodeProps) {
-  const item = data as { label: string; deviceType: string; status?: string };
-  return (
-    <div className={`device-node device-node--${item.status ?? "up"}`}>
-      <Handle type="target" position={Position.Left} />
-      <DeviceSymbol type={item.deviceType} />
-      <span>
-        <strong>{item.label}</strong>
-        <small>{item.deviceType}</small>
-      </span>
-      <Handle type="source" position={Position.Right} />
-    </div>
+// Uses the first interface no link is attached to, or adds one.
+function freeInterface(topology: Topology, node: TopologyNode): { node: TopologyNode; interfaceId: string } {
+  const taken = new Set(
+    topology.links.flatMap((link) => [
+      link.a.node_id === node.id ? link.a.interface_id : "",
+      link.b.node_id === node.id ? link.b.interface_id : "",
+    ]),
   );
-}
-const nodeTypes = { device: DeviceNode };
-
-type RouteResult = {
-  nodes: string[];
-  links: string[];
-  propagation: number;
-  transmission: number;
-  processing: number;
-  queueing: number;
-  total: number;
-  loss: number;
-  bandwidth: number;
-  ttl: number;
-  reachable: boolean;
-};
-
-function route(
-  topology: Topology,
-  source: string,
-  destination: string,
-  protocol: string,
-  bytes: number,
-  blockedNode = "",
-): RouteResult {
-  const links = topology.links.filter(
-    (link) =>
-      link.state !== "down" &&
-      link.a.node_id !== blockedNode &&
-      link.b.node_id !== blockedNode,
-  );
-  const distances = new Map<string, number>([[source, 0]]);
-  const previous = new Map<string, { node: string; link: TopologyLink }>();
-  const pending = new Set(
-    topology.nodes
-      .filter((node) => node.id !== blockedNode)
-      .map((node) => node.id),
-  );
-  while (pending.size) {
-    const current = [...pending].sort(
-      (a, b) => (distances.get(a) ?? Infinity) - (distances.get(b) ?? Infinity),
-    )[0];
-    pending.delete(current);
-    if (
-      current === destination ||
-      !Number.isFinite(distances.get(current) ?? Infinity)
-    )
-      break;
-    for (const link of links.filter(
-      (item) => item.a.node_id === current || item.b.node_id === current,
-    )) {
-      const next = link.a.node_id === current ? link.b.node_id : link.a.node_id;
-      if (!pending.has(next)) continue;
-      const weight =
-        protocol === "ospf" ? link.delay_ms + 1000 / link.capacity_mbps : 1;
-      const candidate = (distances.get(current) ?? 0) + weight;
-      if (candidate < (distances.get(next) ?? Infinity)) {
-        distances.set(next, candidate);
-        previous.set(next, { node: current, link });
-      }
-    }
-  }
-  if (source === destination)
-    return {
-      nodes: [source],
-      links: [],
-      propagation: 0,
-      transmission: 0,
-      processing: 0,
-      queueing: 0,
-      total: 0,
-      loss: 0,
-      bandwidth: 0,
-      ttl: 64,
-      reachable: true,
-    };
-  if (!previous.has(destination))
-    return {
-      nodes: [],
-      links: [],
-      propagation: 0,
-      transmission: 0,
-      processing: 0,
-      queueing: 0,
-      total: 0,
-      loss: 100,
-      bandwidth: 0,
-      ttl: 0,
-      reachable: false,
-    };
-  const nodes = [destination];
-  const pathLinks: TopologyLink[] = [];
-  let cursor = destination;
-  while (cursor !== source) {
-    const step = previous.get(cursor)!;
-    pathLinks.unshift(step.link);
-    nodes.unshift(step.node);
-    cursor = step.node;
-  }
-  const propagation = pathLinks.reduce(
-    (sum, link) => sum + link.delay_ms + (link.jitter_ms ?? 0),
-    0,
-  );
-  const transmission = pathLinks.reduce(
-    (sum, link) => sum + (bytes * 8) / (link.capacity_mbps * 1000),
-    0,
-  );
-  const processing = nodes.reduce(
-    (sum, id) =>
-      sum +
-      (topology.nodes.find((node) => node.id === id)?.processing_delay_ms ??
-        0.2),
-    0,
-  );
-  const queueing = pathLinks.reduce(
-    (sum, link) =>
-      sum +
-      (link.state === "degraded"
-        ? (bytes * 8) / (link.capacity_mbps * 100)
-        : 0),
-    0,
-  );
-  const loss =
-    100 *
-    (1 -
-      pathLinks.reduce(
-        (success, link) => success * (1 - (link.loss_pct ?? 0) / 100),
-        1,
-      ));
-  return {
-    nodes,
-    links: pathLinks.map((link) => link.id),
-    propagation,
-    transmission,
-    processing,
-    queueing,
-    total: propagation + transmission + processing + queueing,
-    loss,
-    bandwidth: Math.min(...pathLinks.map((link) => link.capacity_mbps)),
-    ttl: 64 - pathLinks.length,
-    reachable: true,
-  };
-}
-
-function applyScenario(
-  topology: Topology,
-  scenario: string,
-  target: string,
-): { topology: Topology; blockedNode: string } {
-  const copy = structuredClone(topology);
-  let blockedNode = "";
-  if (scenario === "node-down") blockedNode = target;
-  const link = copy.links.find((item) => item.id === target);
-  if (link && scenario === "link-down") link.state = "down";
-  if (link && scenario === "congestion") {
-    link.state = "degraded";
-    link.capacity_mbps = Math.max(1, link.capacity_mbps * 0.1);
-    link.delay_ms *= 5;
-  }
-  if (link && scenario === "latency") {
-    link.state = "degraded";
-    link.delay_ms += 100;
-  }
-  if (link && scenario === "packet-loss") {
-    link.state = "degraded";
-    link.loss_pct = 30;
-  }
-  return { topology: copy, blockedNode };
+  const free = node.interfaces.find((item) => !taken.has(item.id));
+  if (free) return { node, interfaceId: free.id };
+  const interfaceId = `port-${node.interfaces.length + 1}`;
+  const address = isL3(node) ? `${freshSubnet(topology)}.1/24` : `${node.interfaces[0].address.split("/")[0].split(".").slice(0, 3).join(".")}.${200 + node.interfaces.length}/24`;
+  return { node: { ...node, interfaces: [...node.interfaces, { id: interfaceId, address }] }, interfaceId };
 }
 
 export function Simulator() {
-  const networkId = Number(useParams().networkId);
-  const [searchParams] = useSearchParams();
-  const topologyQuery = useQuery({
-    queryKey: ["topology", networkId],
-    queryFn: () => getTopology(networkId),
-    enabled: Number.isFinite(networkId),
-  });
-  const networks = useQuery({ queryKey: ["networks"], queryFn: getNetworks });
-  const [topology, setTopology] = useState<Topology | null>(null);
-  const [name, setName] = useState("");
-  const [selected, setSelected] = useState("");
-  const [protocol, setProtocol] = useState("ospf");
-  const [packet, setPacket] = useState("ICMP");
-  const [source, setSource] = useState("");
-  const [destination, setDestination] = useState("");
-  const [scenario, setScenario] = useState("link-down");
-  const [target, setTarget] = useState("");
-  const [preview, setPreview] = useState<RouteResult | null>(null);
-  const [baseline, setBaseline] = useState<RouteResult | null>(null);
-  const [logs, setLogs] = useState<string[]>([]);
-  const [activeEdge, setActiveEdge] = useState("");
-  const [liveDownNode, setLiveDownNode] = useState("");
-  const [speed, setSpeed] = useState(1);
-  const [assistantQuestion, setAssistantQuestion] = useState(
-    "Which device is most critical, and what changes if this link fails?",
+  return (
+    <ReactFlowProvider>
+      <Studio />
+    </ReactFlowProvider>
   );
-  const [assistantAnswer, setAssistantAnswer] = useState("");
+}
+
+function Studio() {
+  const networkId = Number(useParams().networkId);
+  const [searchParams, setSearchParams] = useSearchParams();
+  const panel = (searchParams.get("panel") ?? "simulate") as Panel;
+  const flowApi = useReactFlow();
+  const topologyQuery = useQuery({ queryKey: ["topology", networkId], queryFn: () => getTopology(networkId), enabled: Number.isFinite(networkId) });
+  const networks = useQuery({ queryKey: ["networks"], queryFn: getNetworks });
+  const [history, setHistory] = useState<History>({ past: [], present: null, future: [] });
+  const topology = history.present;
+  const [name, setName] = useState("");
+  const [protocol, setProtocol] = useState<Protocol>("ospf");
+  const [flows, setFlows] = useState<EndpointFlow[]>([]);
+  const [selection, setSelection] = useState<{ nodes: string[]; edges: string[] }>({ nodes: [], edges: [] });
+  const [focus, setFocus] = useState<{ kind: "node" | "link"; id: string; rename?: boolean } | null>(null);
+  const [menu, setMenu] = useState<Menu | null>(null);
+  const [impact, setImpact] = useState<{ title: string; impact: Impact; pending?: Fault } | null>(null);
+  const [previousTables, setPreviousTables] = useState<Tables | null>(null);
+  const [logs, setLogs] = useState<LogEntry[]>([]);
+  const [faultKind, setFaultKind] = useState<FaultKind>("link-down");
+  const [faultTarget, setFaultTarget] = useState("");
   const [saveState, setSaveState] = useState("");
-  const [contextMenu, setContextMenu] = useState<{
-    kind: "node" | "link";
-    id: string;
-    x: number;
-    y: number;
-  } | null>(null);
-  const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
+  const [search, setSearch] = useState("");
+  const saved = useRef<Topology | null>(null);
+  const dragOrigin = useRef<Topology | null>(null);
+  const dataCache = useRef(new WeakMap<TopologyNode, DeviceData>());
+  const edgeCache = useRef(new WeakMap<TopologyLink, TrafficData>());
+
+  const setPanel = useCallback(
+    (next: Panel) =>
+      setSearchParams(
+        (params) => {
+          params.set("panel", next);
+          return params;
+        },
+        { replace: true },
+      ),
+    [setSearchParams],
+  );
+
   useEffect(() => {
     if (!topologyQuery.data || topology) return;
     const loaded = topologyQuery.data.topology;
-    setTopology(loaded);
-    setName(
-      networks.data?.find((item) => item.id === networkId)?.name ??
-        `Network ${networkId}`,
-    );
-    const endpoints = loaded.nodes.filter((node) =>
-      ["host", "server"].includes(node.type),
-    );
-    setSource(endpoints[0]?.id ?? loaded.nodes[0]?.id ?? "");
-    setDestination(endpoints.at(-1)?.id ?? loaded.nodes.at(-1)?.id ?? "");
-    const baselineLinks = loaded.expected_baseline_paths?.[0]?.link_ids ?? [];
-    setTarget(
-      baselineLinks[Math.floor(baselineLinks.length / 2)] ??
-        loaded.links[0]?.id ??
-        "",
-    );
-    setNodes(
-      loaded.nodes.map((node, index) => ({
-        id: node.id,
-        type: "device",
-        position: {
-          x: node.x ?? (index % 8) * 170,
-          y: node.y ?? Math.floor(index / 8) * 120,
-        },
-        data: { label: node.id, deviceType: node.type, status: "up" },
-      })),
-    );
-    setEdges(
-      loaded.links.map((link) => ({
-        id: link.id,
-        source: link.a.node_id,
-        target: link.b.node_id,
-        label: `${link.capacity_mbps} Mbps · ${link.delay_ms} ms`,
-        animated: false,
-      })),
-    );
-  }, [
-    networkId,
-    networks.data,
-    setEdges,
-    setNodes,
-    topology,
-    topologyQuery.data,
-  ]);
-  const nodeMap = useMemo(
-    () => new Map(nodes.map((node) => [node.id, node])),
-    [nodes],
+    saved.current = loaded;
+    setHistory({ past: [], present: loaded, future: [] });
+    const endpoints = loaded.nodes.filter((node) => ["host", "server"].includes(node.type));
+    const src = endpoints[0]?.id ?? loaded.nodes[0]?.id ?? "";
+    const dst = endpoints.at(-1)?.id ?? loaded.nodes.at(-1)?.id ?? "";
+    setFlows(src && dst ? [{ src, dst, app: "ICMP" }] : []);
+    const routed = loaded.nodes.find((node) => node.type === "router")?.routing_protocol;
+    if (routed) setProtocol(routed);
+    const baseline = loaded.expected_baseline_paths?.[0]?.link_ids ?? [];
+    setFaultTarget(baseline[Math.floor(baseline.length / 2)] ?? loaded.links[0]?.id ?? "");
+    try {
+      localStorage.setItem("netmind-last-network", String(networkId));
+    } catch {
+      /* storage is a convenience only */
+    }
+  }, [networkId, topology, topologyQuery.data]);
+
+  useEffect(() => {
+    if (!name && networks.data) setName(networks.data.find((item) => item.id === networkId)?.name ?? `Network ${networkId}`);
+  }, [name, networkId, networks.data]);
+
+  const commit = useCallback(
+    (next: Topology) => setHistory((h) => ({ past: h.present ? [...h.past.slice(-49), h.present] : h.past, present: next, future: [] })),
+    [],
   );
-  function syncTopology(): Topology | null {
-    if (!topology) return null;
-    return {
-      ...topology,
-      nodes: topology.nodes.map((item) => ({
-        ...item,
-        x: nodeMap.get(item.id)?.position.x ?? item.x,
-        y: nodeMap.get(item.id)?.position.y ?? item.y,
-      })),
-      links: edges.map(
-        (edge, index) =>
-          topology.links.find((item) => item.id === edge.id) ?? {
-            id: edge.id,
-            a: { node_id: edge.source, interface_id: "port-1" },
-            b: { node_id: edge.target, interface_id: "port-1" },
-            capacity_mbps: 100,
-            delay_ms: 1,
-            loss_pct: 0,
-            jitter_ms: 0,
-            state: "up",
-          },
-      ),
-      expected_baseline_paths: topology.expected_baseline_paths?.length
-        ? topology.expected_baseline_paths
-        : [],
-    };
-  }
-  function connect(connection: Connection) {
-    const id = `link-${connection.source}-${connection.target}-${Date.now().toString().slice(-4)}`;
-    setEdges((current) =>
-      addEdge({ ...connection, id, label: "100 Mbps · 1 ms" }, current),
+  const undo = () =>
+    setHistory((h) => (h.past.length && h.present ? { past: h.past.slice(0, -1), present: h.past.at(-1)!, future: [h.present, ...h.future] } : h));
+  const redo = () =>
+    setHistory((h) => (h.future.length && h.present ? { past: [...h.past, h.present], present: h.future[0], future: h.future.slice(1) } : h));
+  const log = (source: LogEntry["source"], text: string) => setLogs((items) => [{ at: clock(), source, text }, ...items].slice(0, 500));
+
+  const byId = useMemo(() => new Map((topology?.nodes ?? []).map((node) => [node.id, node])), [topology]);
+  const label = useCallback((id: string) => (byId.has(id) ? labelOf(byId.get(id)) : id), [byId]);
+  const primary = flows[0];
+  const tables = useMemo<Tables>(() => (topology ? computeTables(topology, protocol) : new Map()), [topology, protocol]);
+  const results = useMemo(
+    () => (topology ? flows.map((flow) => analyzeFlow(topology, { ...flow, protocol }, tables)) : []),
+    [flows, protocol, tables, topology],
+  );
+  const unreachable = useMemo(() => {
+    if (!topology || !primary || !byId.has(primary.src)) return new Set<string>();
+    return new Set([...reachability(topology, tables, primary.src)].filter(([, ok]) => !ok).map(([id]) => id));
+  }, [byId, primary, tables, topology]);
+
+  const rfNodes = useMemo<Node[]>(() => {
+    if (!topology) return [];
+    return topology.nodes.map((node) => {
+      const role = node.id === primary?.src ? "SRC" : node.id === primary?.dst ? "DST" : undefined;
+      const lost = unreachable.has(node.id);
+      let data = dataCache.current.get(node);
+      if (!data || data.role !== role || data.unreachable !== lost) {
+        data = { node, role, unreachable: lost };
+        dataCache.current.set(node, data);
+      }
+      return { id: node.id, type: "device", position: { x: node.x ?? 0, y: node.y ?? 0 }, data, selected: selection.nodes.includes(node.id) };
+    });
+  }, [primary, selection.nodes, topology, unreachable]);
+
+  const rfEdges = useMemo<Edge[]>(() => {
+    if (!topology) return [];
+    const direction = new Map<string, { forward: boolean; backward: boolean }>();
+    for (const result of results)
+      for (const trace of [result.forward, result.reverse]) {
+        if (!trace.delivered) continue;
+        trace.links.forEach((id, index) => {
+          const link = topology.links.find((item) => item.id === id)!;
+          const entry = direction.get(id) ?? { forward: false, backward: false };
+          if (link.a.node_id === trace.nodes[index]) entry.forward = true;
+          else entry.backward = true;
+          direction.set(id, entry);
+        });
+      }
+    return topology.links.map((link) => {
+      const flow = direction.get(link.id) ?? { forward: false, backward: false };
+      let data = edgeCache.current.get(link);
+      if (!data || data.forward !== flow.forward || data.backward !== flow.backward) {
+        data = { link, utilisation: link.utilisation_pct ?? 0, ...flow };
+        edgeCache.current.set(link, data);
+      }
+      return { id: link.id, source: link.a.node_id, target: link.b.node_id, type: "traffic", data, selected: selection.edges.includes(link.id) };
+    });
+  }, [results, selection.edges, topology]);
+
+  // ---------- edits ----------
+
+  function liveChange(fault: Fault, title: string) {
+    if (!topology) return;
+    const next = applyFault(topology, fault);
+    if (!primary) {
+      commit(next);
+      log("LIVE", `${title} (choose a source and destination to see path impact)`);
+      return;
+    }
+    const started = performance.now();
+    const result = compareImpact(topology, next, { ...primary, protocol });
+    setPreviousTables(tables);
+    commit(next);
+    setImpact({ title, impact: result });
+    log(
+      "LIVE",
+      `${title} → ${result.after.reachable ? `path ${result.after.forward.l3Hops.map(label).join(" → ")} (${result.after.metrics.total.toFixed(3)} ms)` : `destination unreachable: ${result.after.forward.reason}`}; reachable devices ${result.reachableBefore} → ${result.reachableAfter} (recalculated in ${(performance.now() - started).toFixed(1)} ms)`,
     );
-    if (topology && connection.source && connection.target)
-      setTopology({
-        ...topology,
-        links: [
-          ...topology.links,
-          {
-            id,
-            a: { node_id: connection.source, interface_id: "port-1" },
-            b: { node_id: connection.target, interface_id: "port-1" },
-            capacity_mbps: 100,
-            delay_ms: 1,
-            loss_pct: 0,
-            jitter_ms: 0,
-            state: "up",
-          },
-        ],
-      });
   }
-  function addDevice(type: string, x = 240, y = 160) {
-    if (!topology || topology.nodes.length >= 50) return;
-    const number =
-      topology.nodes.filter((node) => node.type === type).length + 1;
-    const id = `${type}-${number}-${Date.now().toString().slice(-3)}`;
-    const item: TopologyNode = {
-      id,
+
+  function updateNode(next: TopologyNode) {
+    if (!topology) return;
+    commit({ ...topology, nodes: topology.nodes.map((node) => (node.id === next.id ? next : node)) });
+    log("EDIT", `${labelOf(next)} updated`);
+  }
+  function updateLink(next: TopologyLink) {
+    if (!topology) return;
+    commit({ ...topology, links: topology.links.map((link) => (link.id === next.id ? next : link)) });
+    log("EDIT", `link ${next.id} updated: ${next.capacity_mbps} Mbps, ${next.delay_ms} ms, loss ${next.loss_pct ?? 0}%`);
+  }
+
+  function addDevice(type: string, position?: { x: number; y: number }) {
+    if (!topology || topology.nodes.length >= MAX_DEVICES) return;
+    let number = 1;
+    while (topology.nodes.some((node) => node.id === `${type}-${number}`)) number += 1;
+    const subnet = freshSubnet(topology);
+    const where = position ?? flowApi.screenToFlowPosition({ x: window.innerWidth / 2 - 200, y: window.innerHeight / 2 });
+    const node: TopologyNode = {
+      id: `${type}-${number}`,
+      name: `${SHORT[type] ?? type}${number}`,
       type,
-      interfaces: [1, 2, 3, 4].map((port) => ({
-        id: `port-${port}`,
-        address: `10.20.${topology.nodes.length}.${port}/24`,
-      })),
-      x,
-      y,
+      interfaces: [{ id: "port-1", address: `${subnet}.${["host", "server"].includes(type) ? 10 : 1}/24` }],
+      x: Math.round(where.x / 20) * 20,
+      y: Math.round(where.y / 20) * 20,
       processing_delay_ms: 0.2,
-      routing_protocol: protocol as "static" | "rip" | "ospf",
+      routing_protocol: protocol,
+      state: "up",
     };
-    setTopology({ ...topology, nodes: [...topology.nodes, item] });
-    setNodes((current) => [
-      ...current,
-      {
-        id,
-        type: "device",
-        position: { x, y },
-        data: { label: id, deviceType: type, status: "up" },
-      },
-    ]);
+    commit({ ...topology, nodes: [...topology.nodes, node] });
+    log("EDIT", `added ${node.name} (${type}) with ${node.interfaces[0].address}`);
   }
-  function drop(event: DragEvent) {
+
+  function connect(source: string, target: string) {
+    if (!topology || source === target) return;
+    const a = freeInterface(topology, byId.get(source)!);
+    const withA = { ...topology, nodes: topology.nodes.map((node) => (node.id === source ? a.node : node)) };
+    const b = freeInterface(withA, byId.get(target)!);
+    let id = `link-${source}-${target}`;
+    for (let suffix = 2; topology.links.some((link) => link.id === id); suffix += 1) id = `link-${source}-${target}-${suffix}`;
+    const link: TopologyLink = {
+      id,
+      a: { node_id: source, interface_id: a.interfaceId },
+      b: { node_id: target, interface_id: b.interfaceId },
+      capacity_mbps: 100,
+      delay_ms: 1,
+      loss_pct: 0,
+      jitter_ms: 0,
+      state: "up",
+    };
+    commit({ ...withA, nodes: withA.nodes.map((node) => (node.id === target ? b.node : node)), links: [...topology.links, link] });
+    log("EDIT", `connected ${label(source)} ${a.interfaceId} ↔ ${label(target)} ${b.interfaceId} (100 Mbps, 1 ms)`);
+  }
+
+  function remove(nodeIds: string[], linkIds: string[]) {
+    if (!topology || (!nodeIds.length && !linkIds.length)) return;
+    const gone = new Set(nodeIds);
+    const links = new Set(linkIds);
+    commit({
+      ...topology,
+      nodes: topology.nodes.filter((node) => !gone.has(node.id)),
+      links: topology.links.filter((link) => !links.has(link.id) && !gone.has(link.a.node_id) && !gone.has(link.b.node_id)),
+      expected_baseline_paths: [],
+    });
+    setFlows((items) => items.filter((flow) => !gone.has(flow.src) && !gone.has(flow.dst)));
+    setFocus(null);
+    log("EDIT", `deleted ${[...nodeIds.map(label), ...linkIds].join(", ")}`);
+  }
+
+  function setEndpoint(role: "src" | "dst", id: string) {
+    setFlows(([first, ...rest]) => [{ ...(first ?? { src: id, dst: id, app: "ICMP" }), [role]: id }, ...rest]);
+  }
+
+  // ---------- React Flow wiring ----------
+
+  function onNodesChange(changes: NodeChange[]) {
+    if (!topology) return;
+    let nodes = topology.nodes;
+    let picked = selection.nodes;
+    for (const change of changes) {
+      if (change.type === "position" && change.position) {
+        const { x, y } = change.position;
+        nodes = nodes.map((node) => (node.id === change.id ? { ...node, x, y } : node));
+      }
+      if (change.type === "select") picked = change.selected ? [...new Set([...picked, change.id])] : picked.filter((id) => id !== change.id);
+    }
+    if (nodes !== topology.nodes) setHistory((h) => ({ ...h, present: { ...topology, nodes } }));
+    if (picked !== selection.nodes) setSelection((current) => ({ ...current, nodes: picked }));
+  }
+  function onEdgesChange(changes: EdgeChange[]) {
+    let picked = selection.edges;
+    for (const change of changes)
+      if (change.type === "select") picked = change.selected ? [...new Set([...picked, change.id])] : picked.filter((id) => id !== change.id);
+    if (picked !== selection.edges) setSelection((current) => ({ ...current, edges: picked }));
+  }
+  function openMenu(kind: Menu["kind"], id: string, x: number, y: number) {
+    setMenu({ kind, id, x: Math.min(x, window.innerWidth - 260), y: Math.min(y, window.innerHeight - 380) });
+  }
+  function onDrop(event: DragEvent) {
     event.preventDefault();
-    const rect = event.currentTarget.getBoundingClientRect();
-    addDevice(
-      event.dataTransfer.getData("device-type"),
-      event.clientX - rect.left,
-      event.clientY - rect.top,
-    );
+    const type = event.dataTransfer.getData("device-type");
+    if (DEVICE_TYPES.includes(type)) addDevice(type, flowApi.screenToFlowPosition({ x: event.clientX, y: event.clientY }));
   }
-  function calculatePreview() {
-    const current = syncTopology();
-    if (!current) return;
-    const before = route(
-      current,
-      source,
-      destination,
-      protocol,
-      packetSizes[packet],
-      liveDownNode,
-    );
-    const changed = applyScenario(current, scenario, target);
-    setBaseline(before);
-    setPreview(
-      route(
-        changed.topology,
-        source,
-        destination,
-        protocol,
-        packetSizes[packet],
-        changed.blockedNode || liveDownNode,
-      ),
-    );
+  function onKeyDown(event: KeyboardEvent) {
+    const typing = (event.target as HTMLElement).closest("input, textarea, select");
+    if (event.key === "Escape") setMenu(null);
+    if (typing) return;
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
+      event.preventDefault();
+      if (event.shiftKey) redo();
+      else undo();
+    }
+    if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "y") {
+      event.preventDefault();
+      redo();
+    }
+    // Keyboard context menu for the focused selection (Shift+F10 or the Menu key).
+    if (event.key === "ContextMenu" || (event.shiftKey && event.key === "F10")) {
+      event.preventDefault();
+      const node = selection.nodes[0];
+      const edge = selection.edges[0];
+      const box = (document.activeElement as HTMLElement | null)?.getBoundingClientRect();
+      if (node) openMenu("node", node, box?.right ?? 300, box?.top ?? 200);
+      else if (edge) openMenu("link", edge, box?.right ?? 300, box?.top ?? 200);
+    }
   }
-  function execute() {
-    const current = syncTopology();
-    if (!current) return;
-    const changed = applyScenario(current, scenario, target);
-    const result = route(
-      changed.topology,
-      source,
-      destination,
-      protocol,
-      packetSizes[packet],
-      changed.blockedNode || liveDownNode,
-    );
-    const convergence =
-      protocol === "rip" ? 30000 : protocol === "ospf" ? 5000 : 0;
-    setTopology(changed.topology);
-    setPreview(result);
-    setLogs([
-      `0.000 ms · ${scenario} applied to ${target}`,
-      `${convergence.toFixed(3)} ms · ${protocol.toUpperCase()} routing convergence model`,
-      `${result.total.toFixed(3)} ms · propagation + transmission + queueing + processing`,
-      result.reachable
-        ? `${result.total.toFixed(3)} ms · ${packet} route selected: ${result.nodes.join(" → ")}`
-        : `${result.total.toFixed(3)} ms · destination unreachable; packet dropped`,
-    ]);
-    setEdges((items) =>
-      items.map((edge) => ({
-        ...edge,
-        animated: result.links.includes(edge.id),
-        style: {
-          stroke:
-            edge.id === target
-              ? "var(--nm-danger)"
-              : result.links.includes(edge.id)
-                ? "var(--nm-accent)"
-                : "var(--nm-border)",
-        },
-      })),
-    );
-    result.links.forEach((id, index) =>
-      setTimeout(
-        () => setActiveEdge(id),
-        index * Math.max(250, (result.total * 30) / speed),
-      ),
-    );
-    setTimeout(
-      () => setActiveEdge(""),
-      result.links.length * Math.max(250, (result.total * 30) / speed),
-    );
+  function focusDevice(query: string) {
+    const match = topology?.nodes.find((node) => [node.id, node.name ?? ""].some((value) => value.toLowerCase() === query.trim().toLowerCase()));
+    if (!match) return;
+    flowApi.fitView({ nodes: [{ id: match.id }], duration: 400, maxZoom: 1.4 });
+    setSelection({ nodes: [match.id], edges: [] });
+    setFocus({ kind: "node", id: match.id });
+    setPanel("canvas");
   }
+
   async function persist() {
-    const current = syncTopology();
-    if (!current) return;
+    if (!topology) return;
     setSaveState("Saving…");
     try {
-      await saveNetwork(networkId, name, current);
+      const document = { ...topology, nodes: topology.nodes.map((node) => ({ ...node, routing_protocol: protocol })) };
+      await saveNetwork(networkId, name, document);
+      saved.current = topology;
       setSaveState("Saved to PostgreSQL");
     } catch {
-      setSaveState("Save failed");
+      setSaveState("Save failed — check names and addresses");
     }
   }
-  function askAssistant() {
-    const result =
-      preview ??
-      (topology
-        ? route(
-            topology,
-            source,
-            destination,
-            protocol,
-            packetSizes[packet],
-            liveDownNode,
-          )
-        : null);
-    if (!result) return;
-    const critical =
-      result.nodes[Math.floor(result.nodes.length / 2)] ?? "none";
-    setAssistantAnswer(
-      result.reachable
-        ? `SIMULATED_AI_PLANNER: ${critical} is central on the selected path. ${protocol.toUpperCase()} uses ${result.links.length} links with ${result.total.toFixed(3)} ms calculated delay and ${result.loss.toFixed(2)}% cumulative loss. Suggested change: add a redundant link around ${critical}, preview it, then confirm before saving.`
-        : `SIMULATED_AI_PLANNER: the destination becomes unreachable. Restore ${target} or add a redundant path, preview the route, and confirm before saving.`,
-    );
-  }
-  function setLiveState(down: boolean) {
-    if (!topology || !contextMenu) return;
-    const before = route(
-      topology,
-      source,
-      destination,
-      protocol,
-      packetSizes[packet],
-      liveDownNode,
-    );
-    if (contextMenu.kind === "link") {
-      const changed: Topology = {
-        ...topology,
-        links: topology.links.map((link) =>
-          link.id === contextMenu.id
-            ? { ...link, state: down ? "down" : "up" }
-            : link,
-        ),
-      };
-      setTopology(changed);
-      setBaseline(before);
-      setPreview(
-        route(
-          changed,
-          source,
-          destination,
-          protocol,
-          packetSizes[packet],
-          liveDownNode,
-        ),
-      );
-      setEdges((items) =>
-        items.map((edge) =>
-          edge.id === contextMenu.id
-            ? {
-                ...edge,
-                className: down ? "edge-down" : "",
-                style: {
-                  stroke: down ? "var(--nm-danger)" : "var(--nm-success)",
-                },
-              }
-            : edge,
-        ),
-      );
-    } else {
-      const blockedNode = down
-        ? contextMenu.id
-        : liveDownNode === contextMenu.id
-          ? ""
-          : liveDownNode;
-      setLiveDownNode(blockedNode);
-      setBaseline(before);
-      setPreview(
-        route(
-          topology,
-          source,
-          destination,
-          protocol,
-          packetSizes[packet],
-          blockedNode,
-        ),
-      );
-      setNodes((items) =>
-        items.map((node) =>
-          node.id === contextMenu.id
-            ? { ...node, data: { ...node.data, status: down ? "down" : "up" } }
-            : node,
-        ),
-      );
-    }
-    setLogs((items) => [
-      `LIVE · ${contextMenu.kind} ${contextMenu.id} changed ${down ? "DOWN" : "UP"}`,
-      ...items,
-    ]);
-    setContextMenu(null);
-  }
-  function renameContextItem() {
-    if (!topology || !contextMenu || contextMenu.kind !== "node") return;
-    const next = prompt("Custom device name", contextMenu.id)
-      ?.trim()
-      .toLowerCase()
-      .replace(/[^a-z0-9-]+/g, "-");
-    if (!next || topology.nodes.some((node) => node.id === next)) return;
-    const old = contextMenu.id;
-    setTopology({
-      ...topology,
-      nodes: topology.nodes.map((node) =>
-        node.id === old ? { ...node, id: next } : node,
-      ),
-      links: topology.links.map((link) => ({
-        ...link,
-        a: {
-          ...link.a,
-          node_id: link.a.node_id === old ? next : link.a.node_id,
-        },
-        b: {
-          ...link.b,
-          node_id: link.b.node_id === old ? next : link.b.node_id,
-        },
-      })),
-    });
-    setNodes((items) =>
-      items.map((node) =>
-        node.id === old
-          ? { ...node, id: next, data: { ...node.data, label: next } }
-          : node,
-      ),
-    );
-    setEdges((items) =>
-      items.map((edge) => ({
-        ...edge,
-        source: edge.source === old ? next : edge.source,
-        target: edge.target === old ? next : edge.target,
-      })),
-    );
-    if (source === old) setSource(next);
-    if (destination === old) setDestination(next);
-    setContextMenu(null);
-  }
-  function deleteContextItem() {
-    if (!topology || !contextMenu) return;
-    if (contextMenu.kind === "link") {
-      setTopology({
-        ...topology,
-        links: topology.links.filter((link) => link.id !== contextMenu.id),
-        expected_baseline_paths: [],
-      });
-      setEdges((items) => items.filter((edge) => edge.id !== contextMenu.id));
-    } else {
-      const connected = new Set(
-        topology.links
-          .filter(
-            (link) =>
-              link.a.node_id === contextMenu.id ||
-              link.b.node_id === contextMenu.id,
-          )
-          .map((link) => link.id),
-      );
-      setTopology({
-        ...topology,
-        nodes: topology.nodes.filter((node) => node.id !== contextMenu.id),
-        links: topology.links.filter((link) => !connected.has(link.id)),
-        expected_baseline_paths: [],
-      });
-      setNodes((items) => items.filter((node) => node.id !== contextMenu.id));
-      setEdges((items) => items.filter((edge) => !connected.has(edge.id)));
-    }
-    setContextMenu(null);
-  }
-  if (topologyQuery.isLoading)
-    return <section className="panel">Loading simulator…</section>;
+
+  if (topologyQuery.isLoading) return <section className="panel">Loading simulator…</section>;
   if (topologyQuery.isError || !topology)
     return (
       <section className="panel">
@@ -686,404 +385,454 @@ export function Simulator() {
         <Link to="/">Return to networks</Link>
       </section>
     );
-  const routeRows = topology.nodes
-    .filter((node) => node.type === "router")
-    .map((router) => ({
-      router: router.id,
-      next: preview?.nodes.includes(router.id)
-        ? (preview.nodes[preview.nodes.indexOf(router.id) + 1] ?? "local")
-        : "—",
-      metric:
-        protocol === "ospf"
-          ? "cost/delay"
-          : protocol === "rip"
-            ? `${preview?.links.length ?? 0} hops`
-            : "static",
-    }));
+
+  const focusNode = focus?.kind === "node" ? byId.get(focus.id) : undefined;
+  const focusLink = focus?.kind === "link" ? topology.links.find((link) => link.id === focus.id) : undefined;
+  const menuNode = menu?.kind === "node" ? byId.get(menu.id) : undefined;
+  const menuLink = menu?.kind === "link" ? topology.links.find((link) => link.id === menu.id) : undefined;
+  const dirty = saved.current !== topology;
+  const primaryResult = results[0];
+  const faultTargets = faultKind.startsWith("node") ? topology.nodes : topology.links;
+  const routers = topology.nodes.filter(isL3);
+  const tableDevice = focusNode && isL3(focusNode) ? focusNode.id : routers.find((node) => node.type === "router")?.id;
+
   return (
-    <div className="simulator-page">
-      <header className="simulator-header">
-        <div>
-          <Link to="/" className="back-link">
-            ← Networks
-          </Link>
+    <div className="studio" onKeyDown={onKeyDown}>
+      <header className="studio-bar">
+        <Link to="/" className="back-link" aria-label="Back to networks">
+          ←
+        </Link>
+        <input className="network-name" value={name} onChange={(event) => setName(event.target.value)} aria-label="Network name" />
+        <span className="count-chip">
+          {topology.nodes.length}/{MAX_DEVICES} devices · {topology.links.length} links
+        </span>
+        <span className="sim-badge" title="Educational model: calculated, not measured">
+          SIMULATED
+        </span>
+        {searchParams.get("planner") && <span className="planner-badge">Generated by {searchParams.get("planner")}</span>}
+        <form
+          className="search-box"
+          role="search"
+          onSubmit={(event) => {
+            event.preventDefault();
+            focusDevice(search);
+          }}
+        >
           <input
-            className="network-name"
-            value={name}
-            onChange={(event) => setName(event.target.value)}
-            aria-label="Network name"
+            list="device-names"
+            placeholder="Find device…"
+            aria-label="Find and focus a device"
+            value={search}
+            onChange={(event) => setSearch(event.target.value)}
           />
-          <p>
-            {topology.nodes.length}/50 devices · {topology.links.length} links ·
-            SIMULATED
-          </p>
-          {searchParams.get("planner") && (
-            <span className="planner-badge">
-              Generated by {searchParams.get("planner")}
-            </span>
-          )}
-        </div>
-        <div className="header-actions">
-          <span>{saveState}</span>
+          <datalist id="device-names">
+            {topology.nodes.map((node) => (
+              <option key={node.id} value={node.name ?? node.id} />
+            ))}
+          </datalist>
+        </form>
+        <div className="bar-actions">
+          <button className="ghost-button" onClick={undo} disabled={!history.past.length} title="Undo (Ctrl+Z)">
+            ↶ Undo
+          </button>
+          <button className="ghost-button" onClick={redo} disabled={!history.future.length} title="Redo (Ctrl+Y)">
+            ↷ Redo
+          </button>
+          <span className="save-state" role="status">
+            {saveState || (dirty ? "Unsaved changes" : "")}
+          </span>
           <button className="primary-button" onClick={persist}>
-            Save network
+            Save
           </button>
         </div>
       </header>
-      <div className="simulator-grid">
-        <aside className="toolbox panel">
-          <p className="eyebrow">DEVICE LIBRARY</p>
-          <h2>Drag onto canvas</h2>
-          <div className="device-palette">
-            {deviceTypes.map((type) => (
-              <button
-                draggable
-                onDragStart={(event) =>
-                  event.dataTransfer.setData("device-type", type)
-                }
-                onClick={() => addDevice(type)}
-                key={type}
-              >
-                <DeviceSymbol type={type} />
-                <span>{type}</span>
-              </button>
-            ))}
-          </div>
-          <p className="toolbox-note">
-            Drag devices, connect handles, or right-click a device/link for live controls.
-          </p>
-          <label>
-            Selected device
-            <select
-              value={selected}
-              onChange={(event) => setSelected(event.target.value)}
-            >
-              <option value="">None</option>
-              {topology.nodes.map((node) => (
-                <option key={node.id}>{node.id}</option>
-              ))}
-            </select>
-          </label>
-          {selected && (
-            <div className="inspector-mini">
-              <strong>{selected}</strong>
-              <span>
-                {topology.nodes.find((node) => node.id === selected)?.type}
-              </span>
-              <span>
-                Processing:{" "}
-                {topology.nodes.find((node) => node.id === selected)
-                  ?.processing_delay_ms ?? 0.2}{" "}
-                ms
-              </span>
-            </div>
-          )}
-        </aside>
-        <main
-          className="canvas-panel panel"
-          onDragOver={(event) => event.preventDefault()}
-          onDrop={drop}
-        >
-          <div className="canvas-toolbar">
-            <span>{packet} packet view</span>
-            <span className="legend">
-              <i className="up" />
-              Active <i className="down" />
-              Fault <i className="path" />
-              Packet path
-            </span>
-          </div>
+      <div className="studio-body">
+        <main className="canvas-wrap" onDragOver={(event) => event.preventDefault()} onDrop={onDrop} aria-label="Network canvas">
           <ReactFlow
-            nodes={nodes.map((node) => ({
-              ...node,
-              className: activeEdge ? "simulation-running" : "",
-            }))}
-            edges={edges.map((edge) => ({
-              ...edge,
-              className: `${edge.className ?? ""} ${edge.id === activeEdge ? "edge-active" : ""}`,
-            }))}
+            nodes={rfNodes}
+            edges={rfEdges}
             nodeTypes={nodeTypes}
+            edgeTypes={edgeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
-            onConnect={connect}
-            onNodeClick={(_, node) => setSelected(node.id)}
-            onPaneClick={() => setContextMenu(null)}
+            onConnect={(connection: Connection) => connection.source && connection.target && connect(connection.source, connection.target)}
+            onNodeDragStart={() => (dragOrigin.current = topology)}
+            onNodeDragStop={() => {
+              const origin = dragOrigin.current;
+              dragOrigin.current = null;
+              if (origin && origin !== topology) setHistory((h) => ({ past: [...h.past.slice(-49), origin], present: h.present, future: [] }));
+            }}
+            onDelete={({ nodes, edges }) => remove(nodes.map((node) => node.id), edges.map((edge) => edge.id))}
+            onNodeClick={(_, node) => {
+              setFocus({ kind: "node", id: node.id });
+              setMenu(null);
+            }}
+            onEdgeClick={(_, edge) => {
+              setFocus({ kind: "link", id: edge.id });
+              setMenu(null);
+            }}
+            onPaneClick={() => setMenu(null)}
             onNodeContextMenu={(event, node) => {
               event.preventDefault();
-              setContextMenu({
-                kind: "node",
-                id: node.id,
-                x: event.clientX,
-                y: event.clientY,
-              });
+              openMenu("node", node.id, event.clientX, event.clientY);
             }}
             onEdgeContextMenu={(event, edge) => {
               event.preventDefault();
-              setContextMenu({
-                kind: "link",
-                id: edge.id,
-                x: event.clientX,
-                y: event.clientY,
-              });
+              openMenu("link", edge.id, event.clientX, event.clientY);
             }}
+            onPaneContextMenu={(event) => {
+              event.preventDefault();
+              openMenu("pane", "", event.clientX, event.clientY);
+            }}
+            snapToGrid
+            snapGrid={[20, 20]}
+            minZoom={0.15}
+            deleteKeyCode={["Delete", "Backspace"]}
+            multiSelectionKeyCode={["Shift", "Control", "Meta"]}
             fitView
           >
-            <Background gap={22} size={1} />
-            <Controls />
+            <Background gap={20} size={1} />
+            <Controls showInteractive={false} />
+            <MiniMap pannable zoomable nodeStrokeWidth={3} nodeColor="#2dd4bf" maskColor="rgba(9, 12, 18, 0.65)" bgColor="#141a25" ariaLabel="Network minimap" />
           </ReactFlow>
+          {!topology.nodes.length && (
+            <div className="empty-canvas">
+              <strong>Blank network</strong>
+              <p>Drag a device from the Canvas drawer, or right-click here → Add device.</p>
+            </div>
+          )}
+          {impact && (
+            <ImpactCard
+              title={impact.title}
+              impact={impact.impact}
+              label={label}
+              onClose={() => setImpact(null)}
+              onApply={
+                impact.pending
+                  ? () => {
+                      const pending = impact.pending!;
+                      liveChange(pending, `${pending.kind} on ${label(pending.target)}`);
+                    }
+                  : undefined
+              }
+            />
+          )}
         </main>
-        <aside className="simulation-panel panel">
-          <p className="eyebrow">PACKET & FAILURE LAB</p>
-          <h2>Preview impact</h2>
-          <div className="compact-form">
-            <label>
-              Routing
-              <select
-                value={protocol}
-                onChange={(event) => setProtocol(event.target.value)}
-              >
-                <option value="static">Static</option>
-                <option value="rip">RIP</option>
-                <option value="ospf">OSPF</option>
-              </select>
-            </label>
-            <label>
-              Packet
-              <select
-                value={packet}
-                onChange={(event) => setPacket(event.target.value)}
-              >
-                {Object.keys(packetSizes).map((type) => (
-                  <option key={type}>{type}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              From
-              <select
-                value={source}
-                onChange={(event) => setSource(event.target.value)}
-              >
-                {topology.nodes.map((node) => (
-                  <option key={node.id}>{node.id}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              To
-              <select
-                value={destination}
-                onChange={(event) => setDestination(event.target.value)}
-              >
-                {topology.nodes.map((node) => (
-                  <option key={node.id}>{node.id}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Failure
-              <select
-                value={scenario}
-                onChange={(event) => {
-                  const next = event.target.value;
-                  setScenario(next);
-                  setTarget(
-                    next === "node-down"
-                      ? (topology.nodes[0]?.id ?? "")
-                      : (topology.links[0]?.id ?? ""),
-                  );
-                  setPreview(null);
-                }}
-              >
-                <option value="link-down">Link down</option>
-                <option value="node-down">Device down</option>
-                <option value="congestion">Congestion</option>
-                <option value="latency">High latency</option>
-                <option value="packet-loss">Packet loss</option>
-              </select>
-            </label>
-            <label>
-              Target
-              <select
-                value={target}
-                onChange={(event) => setTarget(event.target.value)}
-              >
-                {(scenario === "node-down"
-                  ? topology.nodes
-                  : topology.links
-                ).map((item) => (
-                  <option key={item.id}>{item.id}</option>
-                ))}
-              </select>
-            </label>
-            <label>
-              Replay speed
-              <select
-                value={speed}
-                onChange={(event) => setSpeed(Number(event.target.value))}
-              >
-                <option value="0.5">0.5× slow</option>
-                <option value="1">1×</option>
-                <option value="2">2×</option>
-              </select>
-            </label>
-          </div>
-          <div className="simulation-actions">
-            <button
-              disabled={
-                !source || !destination || source === destination || !target
-              }
-              onClick={calculatePreview}
-            >
-              Preview
-            </button>
-            <button
-              className="danger-solid"
-              disabled={!preview}
-              onClick={() =>
-                confirm("Execute this simulated fault?") && execute()
-              }
-            >
-              Confirm & execute
-            </button>
-          </div>
-          {preview && (
-            <div className="impact-card">
-              <strong>
-                {preview.reachable
-                  ? "Alternate path available"
-                  : "Network partition detected"}
-              </strong>
-              <div className="comparison-grid">
-                <section>
-                  <small>Before</small>
-                  <strong>{baseline?.total.toFixed(3) ?? "—"} ms</strong>
-                </section>
-                <section>
-                  <small>After</small>
-                  <strong>{preview.total.toFixed(3)} ms</strong>
-                </section>
-                <section>
-                  <small>Delay change</small>
-                  <strong>
-                    {baseline
-                      ? `${(preview.total - baseline.total).toFixed(3)} ms`
-                      : "—"}
-                  </strong>
-                </section>
-                <section>
-                  <small>Reachability</small>
-                  <strong>{preview.reachable ? "Available" : "Down"}</strong>
-                </section>
+        <aside className="drawer" aria-label={`${panel} panel`}>
+          {panel === "canvas" &&
+            (focusNode ? (
+              <>
+                <NodeInspector node={focusNode} onChange={updateNode} focusName={focus?.rename} key={`${focusNode.id}-${focus?.rename}`} />
+                <div className="inspector-actions">
+                  <button onClick={() => liveChange({ kind: focusNode.state === "down" ? "node-up" : "node-down", target: focusNode.id }, `${labelOf(focusNode)} ${focusNode.state === "down" ? "restored" : "powered down"}`)}>
+                    {focusNode.state === "down" ? "Restore" : "Power down"}
+                  </button>
+                  <button onClick={() => setEndpoint("src", focusNode.id)}>Set as source</button>
+                  <button onClick={() => setEndpoint("dst", focusNode.id)}>Set as destination</button>
+                  <button className="danger-menu" onClick={() => remove([focusNode.id], [])}>
+                    Delete
+                  </button>
+                </div>
+                <label>
+                  Connect to
+                  <select
+                    value=""
+                    onChange={(event) => event.target.value && connect(focusNode.id, event.target.value)}
+                  >
+                    <option value="">Choose a device…</option>
+                    {topology.nodes
+                      .filter((node) => node.id !== focusNode.id)
+                      .map((node) => (
+                        <option key={node.id} value={node.id}>
+                          {labelOf(node)} ({node.type})
+                        </option>
+                      ))}
+                  </select>
+                </label>
+              </>
+            ) : focusLink ? (
+              <>
+                <LinkInspector link={focusLink} label={label} onChange={updateLink} key={focusLink.id} />
+                <div className="inspector-actions">
+                  <button onClick={() => liveChange({ kind: focusLink.state === "down" ? "link-up" : "link-down", target: focusLink.id }, `Link ${focusLink.id} ${focusLink.state === "down" ? "restored" : "set down"}`)}>
+                    {focusLink.state === "down" ? "Restore link" : "Set link down"}
+                  </button>
+                  <button className="danger-menu" onClick={() => remove([], [focusLink.id])}>
+                    Delete link
+                  </button>
+                </div>
+              </>
+            ) : (
+              <>
+                <p className="eyebrow">DEVICE LIBRARY</p>
+                <h2>Add devices</h2>
+                <Palette onAdd={(type) => addDevice(type)} full={topology.nodes.length >= MAX_DEVICES} />
+                <p className="hint">Click to add at the centre, drag onto the canvas, or right-click empty canvas. Drag from a device's right handle to another device to connect. Shift+F10 opens the menu for the selected item.</p>
+                <Legend />
+              </>
+            ))}
+          {panel === "simulate" && (
+            <div className="simulate-panel">
+              <p className="eyebrow">PACKET & FAILURE LAB</p>
+              <h2>Simulate</h2>
+              <div className="field-grid">
+                <label>
+                  Routing
+                  <select value={protocol} onChange={(event) => setProtocol(event.target.value as Protocol)}>
+                    <option value="static">Static</option>
+                    <option value="rip">RIP</option>
+                    <option value="ospf">OSPF</option>
+                  </select>
+                </label>
+                <label>
+                  Packet
+                  <select value={primary?.app ?? "ICMP"} onChange={(event) => setFlows(([first, ...rest]) => (first ? [{ ...first, app: event.target.value }, ...rest] : []))}>
+                    {Object.keys(PACKET_BYTES).map((app) => (
+                      <option key={app}>{app}</option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Source
+                  <select value={primary?.src ?? ""} onChange={(event) => setEndpoint("src", event.target.value)}>
+                    {topology.nodes.filter(isL3).map((node) => (
+                      <option key={node.id} value={node.id}>
+                        {labelOf(node)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+                <label>
+                  Destination
+                  <select value={primary?.dst ?? ""} onChange={(event) => setEndpoint("dst", event.target.value)}>
+                    {topology.nodes.filter(isL3).map((node) => (
+                      <option key={node.id} value={node.id}>
+                        {labelOf(node)}
+                      </option>
+                    ))}
+                  </select>
+                </label>
               </div>
-              <dl>
-                <div>
-                  <dt>Total delay</dt>
-                  <dd>{preview.total.toFixed(3)} ms</dd>
+              {primaryResult && (
+                <dl className="live-metrics" aria-live="polite">
+                  <div>
+                    <dt>Path</dt>
+                    <dd>{primaryResult.reachable ? primaryResult.forward.l3Hops.map(label).join(" → ") : primaryResult.forward.reason}</dd>
+                  </div>
+                  <div>
+                    <dt>One-way</dt>
+                    <dd>{primaryResult.metrics.total.toFixed(3)} ms</dd>
+                  </div>
+                  <div>
+                    <dt>RTT</dt>
+                    <dd>{primaryResult.rttMs.toFixed(3)} ms</dd>
+                  </div>
+                  <div>
+                    <dt>TTL at dest</dt>
+                    <dd>{primaryResult.forward.ttlAtDest}</dd>
+                  </div>
+                </dl>
+              )}
+              <div className="flow-list">
+                <strong>Active flows ({flows.length})</strong>
+                {flows.map((flow, index) => (
+                  <span key={`${flow.src}-${flow.dst}-${index}`} className="flow-chip">
+                    {label(flow.src)} → {label(flow.dst)} · {flow.app}
+                    {index > 0 && (
+                      <button aria-label="Remove flow" onClick={() => setFlows((items) => items.filter((_, position) => position !== index))}>
+                        ✕
+                      </button>
+                    )}
+                  </span>
+                ))}
+                {primary && (
+                  <button className="ghost-button" onClick={() => setFlows((items) => [items[0], { ...items[0] }, ...items.slice(1)])}>
+                    + Keep this flow running and add another
+                  </button>
+                )}
+              </div>
+              <fieldset>
+                <legend>Fault preview</legend>
+                <div className="field-grid">
+                  <label>
+                    Fault
+                    <select
+                      value={faultKind}
+                      onChange={(event) => {
+                        const next = event.target.value as FaultKind;
+                        setFaultKind(next);
+                        setFaultTarget((next.startsWith("node") ? topology.nodes[0]?.id : topology.links[0]?.id) ?? "");
+                      }}
+                    >
+                      <option value="link-down">Link down</option>
+                      <option value="node-down">Device down</option>
+                      <option value="congestion">Congestion (95% load)</option>
+                      <option value="latency">High latency (+100 ms)</option>
+                      <option value="packet-loss">Packet loss (30%)</option>
+                    </select>
+                  </label>
+                  <label>
+                    Target
+                    <select value={faultTarget} onChange={(event) => setFaultTarget(event.target.value)}>
+                      {faultTargets.map((item) => (
+                        <option key={item.id} value={item.id}>
+                          {"type" in item ? labelOf(item) : `${item.id} (${label(item.a.node_id)}↔${label(item.b.node_id)})`}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
                 </div>
-                <div>
-                  <dt>Propagation</dt>
-                  <dd>{preview.propagation.toFixed(3)} ms</dd>
-                </div>
-                <div>
-                  <dt>Transmission</dt>
-                  <dd>{preview.transmission.toFixed(3)} ms</dd>
-                </div>
-                <div>
-                  <dt>Processing</dt>
-                  <dd>{preview.processing.toFixed(3)} ms</dd>
-                </div>
-                <div>
-                  <dt>Queueing</dt>
-                  <dd>{preview.queueing.toFixed(3)} ms</dd>
-                </div>
-                <div>
-                  <dt>Bottleneck</dt>
-                  <dd>{preview.bandwidth.toFixed(0)} Mbps</dd>
-                </div>
-                <div>
-                  <dt>Loss</dt>
-                  <dd>{preview.loss.toFixed(2)}%</dd>
-                </div>
-                <div>
-                  <dt>TTL remaining</dt>
-                  <dd>{preview.ttl}</dd>
-                </div>
-                <div>
-                  <dt>Route change</dt>
-                  <dd>{baseline?.links.join(" → ") || "none"}</dd>
-                </div>
-                <div>
-                  <dt>New route</dt>
-                  <dd>{preview.links.join(" → ") || "unreachable"}</dd>
-                </div>
-              </dl>
+                <button
+                  disabled={!primary || !faultTarget}
+                  onClick={() => {
+                    const fault = { kind: faultKind, target: faultTarget };
+                    setImpact({ title: `Preview: ${faultKind} on ${label(faultTarget)}`, impact: compareImpact(topology, applyFault(topology, fault), { ...primary!, protocol }), pending: fault });
+                    log("PREVIEW", `${faultKind} on ${faultTarget} previewed (nothing changed)`);
+                  }}
+                >
+                  Preview impact
+                </button>
+              </fieldset>
+            </div>
+          )}
+          {panel === "tables" && (
+            <div className="tables-panel">
+              <p className="eyebrow">ROUTING TABLE · {protocol.toUpperCase()}</p>
+              <label>
+                Device
+                <select value={tableDevice ?? ""} onChange={(event) => setFocus({ kind: "node", id: event.target.value })}>
+                  {routers.map((node) => (
+                    <option key={node.id} value={node.id}>
+                      {labelOf(node)} ({node.type})
+                    </option>
+                  ))}
+                </select>
+              </label>
+              {tableDevice && (
+                <table className="route-table">
+                  <thead>
+                    <tr>
+                      <th>Code</th>
+                      <th>Prefix</th>
+                      <th>Next hop</th>
+                      <th>Iface</th>
+                      <th>Metric</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {(tables.get(tableDevice) ?? []).map((route) => {
+                      const old = previousTables?.get(tableDevice)?.find((item) => item.prefix === route.prefix);
+                      const changed = previousTables && (!old || old.nextHop !== route.nextHop || old.metric !== route.metric);
+                      return (
+                        <tr key={route.prefix} className={changed ? "row-changed" : ""}>
+                          <td>{route.code}</td>
+                          <td>{route.prefix}</td>
+                          <td>{route.nextHop ? label(route.nextHop) : "connected"}</td>
+                          <td>{route.iface}</td>
+                          <td>{route.metric}</td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+          )}
+          {panel === "logs" && (
+            <div className="logs-panel">
+              <p className="eyebrow">EVENT LOG · THIS NETWORK ONLY</p>
+              <ol className="event-log">
+                {logs.length ? (
+                  logs.map((entry, index) => (
+                    <li key={`${entry.at}-${index}`}>
+                      <time>{entry.at}</time> <b>{entry.source}</b> {entry.text}
+                    </li>
+                  ))
+                ) : (
+                  <li>No events yet. Right-click a device or link, or preview a fault.</li>
+                )}
+              </ol>
+            </div>
+          )}
+          {panel === "ai" && (
+            <div className="ai-panel">
+              <p className="eyebrow">LAB ASSISTANT</p>
+              <p>AI explain and suggest arrive in a later step.</p>
             </div>
           )}
         </aside>
       </div>
-      <section className="analysis-grid">
-        <article className="panel">
-          <p className="eyebrow">ROUTING TABLE CHANGES</p>
-          <h2>{protocol.toUpperCase()} convergence</h2>
-          <table>
-            <thead>
-              <tr>
-                <th>Router</th>
-                <th>Next hop</th>
-                <th>Metric</th>
-              </tr>
-            </thead>
-            <tbody>
-              {routeRows.map((row) => (
-                <tr key={row.router}>
-                  <td>{row.router}</td>
-                  <td>{row.next}</td>
-                  <td>{row.metric}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </article>
-        <article className="panel">
-          <p className="eyebrow">EVENT LOG</p>
-          <h2>Timing and propagation</h2>
-          <ol className="event-log">
-            {logs.length ? (
-              logs.map((log, index) => <li key={`${log}-${index}`}>{log}</li>)
-            ) : (
-              <li>Preview and execute a simulation to create logs.</li>
-            )}
-          </ol>
-        </article>
-        <article className="panel assistant-panel">
-          <p className="eyebrow">AI LAB ASSISTANT</p>
-          <h2>Explain and suggest</h2>
-          <textarea
-            value={assistantQuestion}
-            onChange={(event) => setAssistantQuestion(event.target.value)}
-          />
-          <button onClick={askAssistant}>Analyse current topology</button>
-          {assistantAnswer && <p>{assistantAnswer}</p>}
-        </article>
-      </section>
-      {contextMenu && (
+      {menu && (
         <div
-          className="network-context-menu"
-          style={{ left: contextMenu.x, top: contextMenu.y }}
+          className="context-menu"
+          style={{ left: menu.x, top: menu.y }}
           role="menu"
+          aria-label="Canvas actions"
+          onKeyDown={(event) => event.key === "Escape" && setMenu(null)}
         >
-          <strong>
-            {contextMenu.kind === "node" ? "Device" : "Link"}: {contextMenu.id}
-          </strong>
-          <button onClick={() => setLiveState(true)}>Set down now</button>
-          <button onClick={() => setLiveState(false)}>Restore live</button>
-          {contextMenu.kind === "node" && (
-            <button onClick={renameContextItem}>Rename device</button>
+          {menuNode && (
+            <>
+              <strong>
+                {labelOf(menuNode)} · {menuNode.type}
+              </strong>
+              <button role="menuitem" autoFocus onClick={() => (liveChange({ kind: menuNode.state === "down" ? "node-up" : "node-down", target: menuNode.id }, `${labelOf(menuNode)} ${menuNode.state === "down" ? "restored" : "powered down"}`), setMenu(null))}>
+                {menuNode.state === "down" ? "Restore (power on)" : "Power down"}
+              </button>
+              <button role="menuitem" onClick={() => (setFocus({ kind: "node", id: menuNode.id, rename: true }), setPanel("canvas"), setMenu(null))}>
+                Rename
+              </button>
+              <button role="menuitem" onClick={() => (setFocus({ kind: "node", id: menuNode.id }), setPanel("canvas"), setMenu(null))}>
+                Edit interfaces / IP
+              </button>
+              <button role="menuitem" onClick={() => (setEndpoint("src", menuNode.id), setMenu(null))}>
+                Set as source
+              </button>
+              <button role="menuitem" onClick={() => (setEndpoint("dst", menuNode.id), setMenu(null))}>
+                Set as destination
+              </button>
+              <button role="menuitem" onClick={() => (setFocus({ kind: "node", id: menuNode.id }), setPanel("tables"), setMenu(null))}>
+                Show routing / ARP / MAC tables
+              </button>
+              <button role="menuitem" className="danger-menu" onClick={() => (remove([menuNode.id], []), setMenu(null))}>
+                Delete device
+              </button>
+            </>
           )}
-          <button className="danger-menu" onClick={deleteContextItem}>
-            Delete {contextMenu.kind}
-          </button>
+          {menuLink && (
+            <>
+              <strong>
+                {label(menuLink.a.node_id)} ↔ {label(menuLink.b.node_id)}
+              </strong>
+              <button role="menuitem" autoFocus onClick={() => (liveChange({ kind: menuLink.state === "down" ? "link-up" : "link-down", target: menuLink.id }, `Link ${menuLink.id} ${menuLink.state === "down" ? "restored" : "set down"}`), setMenu(null))}>
+                {menuLink.state === "down" ? "Restore link" : "Set link down"}
+              </button>
+              <button role="menuitem" onClick={() => (setFocus({ kind: "link", id: menuLink.id }), setPanel("canvas"), setMenu(null))}>
+                Edit bandwidth / delay / loss / jitter / queue
+              </button>
+              <button role="menuitem" className="danger-menu" onClick={() => (remove([], [menuLink.id]), setMenu(null))}>
+                Delete link
+              </button>
+            </>
+          )}
+          {menu.kind === "pane" && (
+            <>
+              <strong>Add device here</strong>
+              {DEVICE_TYPES.map((type, index) => (
+                <button
+                  role="menuitem"
+                  autoFocus={index === 0}
+                  key={type}
+                  disabled={topology.nodes.length >= MAX_DEVICES}
+                  onClick={() => {
+                    addDevice(type, flowApi.screenToFlowPosition({ x: menu.x, y: menu.y }));
+                    setMenu(null);
+                  }}
+                >
+                  <DeviceSymbol type={type} /> {type}
+                </button>
+              ))}
+            </>
+          )}
         </div>
       )}
     </div>

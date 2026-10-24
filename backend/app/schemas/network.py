@@ -26,14 +26,22 @@ class Interface(BaseModel):
     address: IPv4Interface
 
 
+class AclRule(BaseModel):
+    action: str = Field(pattern=r"^(allow|deny)$")
+    protocol: str = Field(pattern=r"^(ANY|ICMP|ARP|DHCP|DNS|TCP|UDP|HTTP)$")
+
+
 class Node(BaseModel):
     id: str = Field(pattern=r"^[a-z0-9-]+$")
+    name: str | None = Field(default=None, max_length=40)
     type: NodeType
     interfaces: list[Interface] = Field(min_length=1)
     x: float = 0
     y: float = 0
     processing_delay_ms: float = Field(default=0.2, ge=0)
     routing_protocol: str = Field(default="static", pattern=r"^(static|rip|ospf)$")
+    state: str = Field(default="up", pattern=r"^(up|down)$")
+    acl: list[AclRule] = Field(default_factory=list, max_length=20)
 
     @model_validator(mode="after")
     def unique_interfaces(self) -> "Node":
@@ -56,6 +64,10 @@ class Link(BaseModel):
     loss_pct: float = Field(default=0, ge=0, le=100)
     jitter_ms: float = Field(default=0, ge=0)
     state: LinkState = LinkState.UP
+    length_m: float | None = Field(default=None, ge=0, le=1e7)
+    queue_packets: int = Field(default=64, ge=1, le=10000)
+    utilisation_pct: float = Field(default=0, ge=0, le=100)
+    ospf_cost: int | None = Field(default=None, ge=1, le=65535)
 
 
 class BaselinePath(BaseModel):
