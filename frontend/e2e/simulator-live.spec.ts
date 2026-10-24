@@ -1,13 +1,5 @@
 import { expect, test, type Page } from "@playwright/test";
-import { lab } from "../src/sim/testkit";
-
-// Needs the local stack (API on 8000 + Firebase Auth emulator on 9099): run.ps1 first.
-
-async function login(page: Page) {
-  await page.goto("/login");
-  await page.getByRole("button", { name: "Enter simulator" }).click();
-  await page.waitForURL((url) => !url.pathname.startsWith("/login"));
-}
+import { createLab, login, watchConsole } from "./helpers";
 
 async function center(page: Page, nodeId: string) {
   const box = (await page.locator(`.react-flow__node[data-id="${nodeId}"]`).boundingBox())!;
@@ -25,13 +17,8 @@ async function afterValues(page: Page) {
 }
 
 test("right-click faults recalculate live and match Preview", async ({ page, request }) => {
-  const problems: string[] = [];
-  page.on("console", (message) => {
-    if (["error", "warning"].includes(message.type())) problems.push(message.text());
-  });
-  const created = await request.post("/networks", { data: { name: `e2e-lab-${Date.now()}`, topology: lab() } });
-  expect(created.ok()).toBeTruthy();
-  const { id } = await created.json();
+  const problems = watchConsole(page);
+  const id = await createLab(request);
   try {
     await login(page);
     await page.goto(`/simulator/${id}?panel=simulate`);

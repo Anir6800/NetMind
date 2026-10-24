@@ -18,6 +18,9 @@ import { Link, useParams, useSearchParams } from "react-router-dom";
 import { getNetworks, getTopology, saveNetwork, type Topology, type TopologyLink, type TopologyNode } from "../lib/api";
 import { DEVICE_TYPES, DeviceSymbol, edgeTypes, nodeTypes, type DeviceData, type TrafficData } from "../features/sim/canvas";
 import { ImpactCard, Legend, LinkInspector, NodeInspector, Palette } from "../features/sim/panels";
+import { set as setPlayback, usePlayback } from "../features/sim/playback";
+import { PacketInspector, PacketList, PlayerControls, RunLog } from "../features/sim/player";
+import { simulate } from "../sim/des";
 import {
   PACKET_BYTES,
   analyzeFlow,
@@ -106,6 +109,7 @@ function Studio() {
   const [faultTarget, setFaultTarget] = useState("");
   const [saveState, setSaveState] = useState("");
   const [search, setSearch] = useState("");
+  const [runOptions, setRunOptions] = useState({ count: 3, intervalMs: 1, seed: 1, ttl: 64, warmArp: false });
   const saved = useRef<Topology | null>(null);
   const dragOrigin = useRef<Topology | null>(null);
   const dataCache = useRef(new WeakMap<TopologyNode, DeviceData>());
@@ -147,14 +151,20 @@ function Studio() {
     if (!name && networks.data) setName(networks.data.find((item) => item.id === networkId)?.name ?? `Network ${networkId}`);
   }, [name, networkId, networks.data]);
 
-  const commit = useCallback(
-    (next: Topology) => setHistory((h) => ({ past: h.present ? [...h.past.slice(-49), h.present] : h.past, present: next, future: [] })),
-    [],
-  );
-  const undo = () =>
+  // A slow-motion run describes one network state; structural edits make it stale.
+  const clearRun = () => setPlayback({ run: null, clock: 0, playing: false, selected: null });
+  const commit = useCallback((next: Topology) => {
+    clearRun();
+    setHistory((h) => ({ past: h.present ? [...h.past.slice(-49), h.present] : h.past, present: next, future: [] }));
+  }, []);
+  const undo = () => {
+    clearRun();
     setHistory((h) => (h.past.length && h.present ? { past: h.past.slice(0, -1), present: h.past.at(-1)!, future: [h.present, ...h.future] } : h));
-  const redo = () =>
+  };
+  const redo = () => {
+    clearRun();
     setHistory((h) => (h.future.length && h.present ? { past: [...h.past, h.present], present: h.future[0], future: h.future.slice(1) } : h));
+  };
   const log = (source: LogEntry["source"], text: string) => setLogs((items) => [{ at: clock(), source, text }, ...items].slice(0, 500));
 
   const byId = useMemo(() => new Map((topology?.nodes ?? []).map((node) => [node.id, node])), [topology]);
@@ -501,6 +511,9 @@ function Studio() {
               <p>Drag a device from the Canvas drawer, or right-click here → Add device.</p>
             </div>
           )}
+          <div className="player-dock">
+            <PlayerControls />
+          </div>
           {impact && (
             <ImpactCard
               title={impact.title}
@@ -693,6 +706,43 @@ function Studio() {
                   Preview impact
                 </button>
               </fieldset>
+              <fieldset>
+                <legend>Send packets · slow motion</legend>
+                <div className="field-grid">
+                  <label>
+                    Packets
+                    <input type="number" min={1} max={50} value={runOptions.count} onChange={(event) => setRunOptions({ ...runOptions, count: Math.min(50, Math.max(1, Number(event.target.value))) })} />
+                  </label>
+                  <label>
+                    Interval (ms)
+                    <input type="number" min={0} step="0.1" value={runOptions.intervalMs} onChange={(event) => setRunOptions({ ...runOptions, intervalMs: Math.max(0, Number(event.target.value)) })} />
+                  </label>
+                  <label>
+                    Initial TTL
+                    <input type="number" min={1} max={255} value={runOptions.ttl} onChange={(event) => setRunOptions({ ...runOptions, ttl: Math.min(255, Math.max(1, Number(event.target.value))) })} />
+                  </label>
+                  <label>
+                    Seed
+                    <input type="number" value={runOptions.seed} onChange={(event) => setRunOptions({ ...runOptions, seed: Number(event.target.value) })} />
+                  </label>
+                </div>
+                <label className="check">
+                  <input type="checkbox" checked={runOptions.warmArp} onChange={(event) => setRunOptions({ ...runOptions, warmArp: event.target.checked })} />
+                  ARP caches already warm (switch MAC tables still empty)
+                </label>
+                <button
+                  className="primary-button"
+                  disabled={!primary || primary.src === primary.dst}
+                  onClick={() => {
+                    const run = simulate(topology, { ...runOptions, protocol, src: primary!.src, dst: primary!.dst, app: primary!.app });
+                    setPlayback({ run, clock: 0, playing: true, selected: 1 });
+                    log("LIVE", `sent ${runOptions.count} × ${primary!.app} ${label(primary!.src)} → ${label(primary!.dst)} (seed ${runOptions.seed}): ${run.events.length} events over ${run.endTime.toFixed(3)} ms`);
+                  }}
+                >
+                  Send &amp; play in slow motion
+                </button>
+              </fieldset>
+              <RunPanel label={label} typeOf={(id) => byId.get(id)?.type ?? "host"} />
             </div>
           )}
           {panel === "tables" && (
@@ -740,7 +790,9 @@ function Studio() {
           )}
           {panel === "logs" && (
             <div className="logs-panel">
-              <p className="eyebrow">EVENT LOG · THIS NETWORK ONLY</p>
+              <p className="eyebrow">SIMULATION EVENTS · LAST RUN</p>
+              <RunLogPanel label={label} />
+              <p className="eyebrow">LIVE CHANGES · THIS NETWORK ONLY</p>
               <ol className="event-log">
                 {logs.length ? (
                   logs.map((entry, index) => (
@@ -837,4 +889,20 @@ function Studio() {
       )}
     </div>
   );
+}
+
+function RunPanel({ label, typeOf }: { label: (id: string) => string; typeOf: (id: string) => string }) {
+  const { run, selected } = usePlayback();
+  if (!run) return null;
+  return (
+    <>
+      <PacketList run={run} label={label} />
+      {selected && <PacketInspector run={run} packetId={selected} label={label} typeOf={typeOf} />}
+    </>
+  );
+}
+
+function RunLogPanel({ label }: { label: (id: string) => string }) {
+  const { run } = usePlayback();
+  return run ? <RunLog run={run} label={label} /> : <p className="hint">No run yet — Simulate → Send packets.</p>;
 }

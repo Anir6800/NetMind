@@ -10,6 +10,7 @@ import {
 } from "@xyflow/react";
 import type { TopologyLink, TopologyNode } from "../../lib/api";
 import { ipOf, labelOf } from "../../sim/engine";
+import { useLinkDots } from "./playback";
 
 export const DEVICE_TYPES = ["router", "switch", "hub", "repeater", "host", "server", "firewall", "access-point"];
 export const TYPE_BADGE: Record<string, string> = {
@@ -130,7 +131,6 @@ export type TrafficData = {
   utilisation: number;
   forward: boolean; // student flow travels a -> b
   backward: boolean; // student flow (or its reply) travels b -> a
-  dots?: PlaybackDot[];
   showLabel?: boolean;
 };
 
@@ -146,7 +146,8 @@ function center(node: ReturnType<typeof useInternalNode>) {
 export const TrafficEdge = memo(function TrafficEdge({ id, source, target, data, selected }: EdgeProps) {
   const a = center(useInternalNode(source));
   const b = center(useInternalNode(target));
-  const { link, utilisation, forward, backward, dots = [], showLabel } = data as TrafficData;
+  const { link, utilisation, forward, backward, showLabel } = data as TrafficData;
+  const dots = useLinkDots(id, link.a.node_id);
   const path = `M ${a.x} ${a.y} L ${b.x} ${b.y}`;
   const down = link.state === "down";
   const tone = down ? "down" : utilisation >= 90 ? "hot" : utilisation >= 70 ? "warm" : forward || backward ? "path" : "idle";
