@@ -259,3 +259,15 @@
 - Observed: a live API request interpreted a 14-device hospital/RIP prompt through NVIDIA and returned `source=NVIDIA`; the generated graph remains server-validated and deterministic. The browser rendered the floating bottom pill, rounded device cards, animated link traffic, and a right-click link menu. Setting a link down immediately displayed before/after delay, reachability, route dependency, and a `LIVE` event-log entry with zero browser errors.
 - Verification: full backend suite 132 passed; Ruff passed; frontend production build passed with the existing >500 kB chunk warning. Browser smoke covered right-click state change and automatic impact calculation against the running local stack.
 - Limits: traffic and timing are labelled `SIMULATED`; this is an educational calculator, not packet capture. NVIDIA interprets topology intent while the allowlisted local builder creates the validated graph. One device can be held down through the immediate canvas control at a time; use the scenario preview for other concurrent what-if faults.
+
+## NM-SIM-CONTINUE — Finish NetMind as a student network simulator
+
+- Status: IN_PROGRESS
+- Started: 2026-10-24
+- Scope: Step 0 reconcile, then WP1 live canvas, WP2 discrete-event engine, WP3 routing/convergence, WP5 AI, WP6 UI, WP9 partial, WP4 protocol ladders, WP7 templates/criticality, WP8 save/share/lessons, final WP9.
+- Step 0 (reconcile): the "12 uncommitted files" from the cut-off session were already committed as `46dbc3b` (same 12 files: README, ai-memory, networks API/service, nvidia_client, AppShell, Dashboard, Simulator, global.css, run.ps1, tests). Working tree clean; no stale IN_PROGRESS entry for that work (its entry above says COMPLETE). Checkpoint SHA = `46dbc3b`; no new checkpoint commit was needed.
+- Step 0 checks (2026-10-24): backend pytest 132 passed; ruff clean; frontend build passed (>500 kB chunk warning only). `run.ps1` already sets `NETMIND_NVIDIA_FIXTURE_MODE=false` when `NVIDIA_API_KEY` is non-empty.
+- Finding: the route calculator is a component-local function in `frontend/src/pages/Simulator.tsx`; templates are 20 category labels fed to one tree generator in `backend/app/services/networks.py`.
+- Step 0 browser smoke (Playwright headless against the already-running stack, 2026-10-24; Chrome extension was disconnected): demo student login worked; network 3 loaded 50 devices. Right-click LINK opened Set down/Restore/Delete; Set down produced the before/after card and a `LIVE` log entry. Right-click DEVICE opened Set down/Restore/Rename/Delete; Set down logged `LIVE · node host-6 changed DOWN`. Console: 0 errors/warnings. Bugs seen: context menu is not clamped to the viewport (Playwright reported its buttons outside viewport); bottom pill overlaps the canvas; header shows `Network 3` instead of the saved name when networks list loads late.
+- Step 0 AI probe: live `POST /networks/generate` returned `source=NVIDIA`, 12 devices, RIP in 1.16 s (key present, fixture mode false). Probe network deleted (HTTP 204).
+- Next: WP1 (extract calculator into `frontend/src/sim/` with `node --test` unit tests).
