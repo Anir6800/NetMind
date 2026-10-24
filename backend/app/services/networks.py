@@ -5,6 +5,8 @@ from pathlib import Path
 
 from sqlalchemy.orm import Session
 
+from app.core.config import get_settings
+from app.integrations.nvidia_client import NvidiaClient
 from app.repositories.networks import NetworksRepository
 from app.schemas.network import Topology
 
@@ -50,10 +52,11 @@ class NetworksService:
         return True
 
     def generate(self, name: str, device_count: int, category: str, protocol: str, prompt: str = ""):
+        plan = NvidiaClient(get_settings()).plan_network(prompt, {"device_count": device_count, "category": category, "protocol": protocol})
         requested = re.search(r"\b(\d{1,2})\s*(?:devices?|nodes?)\b", prompt.lower())
-        count = min(50, max(6, int(requested.group(1)) if requested else device_count))
-        topology = generated_topology(count, category, protocol)
-        return self.create(name, topology), topology
+        count = plan.device_count if plan else min(50, max(6, int(requested.group(1)) if requested else device_count))
+        topology = generated_topology(count, plan.category if plan else category, plan.protocol if plan else protocol)
+        return self.create(name, topology), topology, "NVIDIA" if plan else "SIMULATED_AI_PLANNER"
 
 
 def generated_topology(device_count: int, category: str, protocol: str) -> Topology:

@@ -31,6 +31,12 @@ class ProviderDiagnosis(BaseModel):
     confidence: float = Field(ge=0, le=1)
 
 
+class NetworkPlan(BaseModel):
+    device_count: int = Field(ge=6, le=50)
+    category: str
+    protocol: str = Field(pattern=r"^(static|rip|ospf)$")
+
+
 class RateLimiter:
     def __init__(self, limit: int, now: Callable[[], float] = time.monotonic) -> None:
         self.limit = limit
@@ -73,6 +79,27 @@ class NvidiaClient:
             self.failures += 1
             self.circuit_open = self.failures >= self.settings.nvidia_failure_threshold
             return self._fixture("request_failed", started)
+
+    def plan_network(self, prompt: str, defaults: dict) -> NetworkPlan | None:
+        if self.settings.nvidia_fixture_mode or not self.settings.nvidia_api_key or not prompt.strip():
+            return None
+        from openai import OpenAI
+
+        self.rate_limiter.acquire()
+        client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=self.settings.nvidia_api_key, timeout=self.settings.nvidia_timeout_s)
+        instruction = (
+            "Return only JSON with device_count (6-50), category, and protocol "
+            "(static, rip, or ospf). Interpret this student network request: "
+            + json.dumps(prompt)
+            + ". Defaults: "
+            + json.dumps(defaults, sort_keys=True)
+        )
+        try:
+            completion = client.chat.completions.create(model=self.settings.nvidia_model, messages=[{"role": "user", "content": instruction}], temperature=0.1, max_tokens=120, extra_body={"chat_template_kwargs": {"enable_thinking": False}})
+            content = (completion.choices[0].message.content or "{}").strip().removeprefix("```json").removesuffix("```").strip()
+            return NetworkPlan.model_validate_json(content)
+        except Exception:  # noqa: BLE001 - generation always has a labelled local fallback.
+            return None
 
     def _diagnose_with_models(self, evidence: dict) -> Diagnosis:
         last_error: Exception | None = None

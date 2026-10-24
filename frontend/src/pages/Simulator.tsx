@@ -15,7 +15,7 @@ import {
 } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { useQuery } from "@tanstack/react-query";
-import { Link, useParams } from "react-router-dom";
+import { Link, useParams, useSearchParams } from "react-router-dom";
 import {
   getNetworks,
   getTopology,
@@ -249,6 +249,7 @@ function applyScenario(
 
 export function Simulator() {
   const networkId = Number(useParams().networkId);
+  const [searchParams] = useSearchParams();
   const topologyQuery = useQuery({
     queryKey: ["topology", networkId],
     queryFn: () => getTopology(networkId),
@@ -268,12 +269,19 @@ export function Simulator() {
   const [baseline, setBaseline] = useState<RouteResult | null>(null);
   const [logs, setLogs] = useState<string[]>([]);
   const [activeEdge, setActiveEdge] = useState("");
+  const [liveDownNode, setLiveDownNode] = useState("");
   const [speed, setSpeed] = useState(1);
   const [assistantQuestion, setAssistantQuestion] = useState(
     "Which device is most critical, and what changes if this link fails?",
   );
   const [assistantAnswer, setAssistantAnswer] = useState("");
   const [saveState, setSaveState] = useState("");
+  const [contextMenu, setContextMenu] = useState<{
+    kind: "node" | "link";
+    id: string;
+    x: number;
+    y: number;
+  } | null>(null);
   const [nodes, setNodes, onNodesChange] = useNodesState<Node>([]);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
   useEffect(() => {
@@ -423,6 +431,7 @@ export function Simulator() {
       destination,
       protocol,
       packetSizes[packet],
+      liveDownNode,
     );
     const changed = applyScenario(current, scenario, target);
     setBaseline(before);
@@ -433,7 +442,7 @@ export function Simulator() {
         destination,
         protocol,
         packetSizes[packet],
-        changed.blockedNode,
+        changed.blockedNode || liveDownNode,
       ),
     );
   }
@@ -447,7 +456,7 @@ export function Simulator() {
       destination,
       protocol,
       packetSizes[packet],
-      changed.blockedNode,
+      changed.blockedNode || liveDownNode,
     );
     const convergence =
       protocol === "rip" ? 30000 : protocol === "ospf" ? 5000 : 0;
@@ -501,7 +510,14 @@ export function Simulator() {
     const result =
       preview ??
       (topology
-        ? route(topology, source, destination, protocol, packetSizes[packet])
+        ? route(
+            topology,
+            source,
+            destination,
+            protocol,
+            packetSizes[packet],
+            liveDownNode,
+          )
         : null);
     if (!result) return;
     const critical =
@@ -511,6 +527,155 @@ export function Simulator() {
         ? `SIMULATED_AI_PLANNER: ${critical} is central on the selected path. ${protocol.toUpperCase()} uses ${result.links.length} links with ${result.total.toFixed(3)} ms calculated delay and ${result.loss.toFixed(2)}% cumulative loss. Suggested change: add a redundant link around ${critical}, preview it, then confirm before saving.`
         : `SIMULATED_AI_PLANNER: the destination becomes unreachable. Restore ${target} or add a redundant path, preview the route, and confirm before saving.`,
     );
+  }
+  function setLiveState(down: boolean) {
+    if (!topology || !contextMenu) return;
+    const before = route(
+      topology,
+      source,
+      destination,
+      protocol,
+      packetSizes[packet],
+      liveDownNode,
+    );
+    if (contextMenu.kind === "link") {
+      const changed: Topology = {
+        ...topology,
+        links: topology.links.map((link) =>
+          link.id === contextMenu.id
+            ? { ...link, state: down ? "down" : "up" }
+            : link,
+        ),
+      };
+      setTopology(changed);
+      setBaseline(before);
+      setPreview(
+        route(
+          changed,
+          source,
+          destination,
+          protocol,
+          packetSizes[packet],
+          liveDownNode,
+        ),
+      );
+      setEdges((items) =>
+        items.map((edge) =>
+          edge.id === contextMenu.id
+            ? {
+                ...edge,
+                className: down ? "edge-down" : "",
+                style: {
+                  stroke: down ? "var(--nm-danger)" : "var(--nm-success)",
+                },
+              }
+            : edge,
+        ),
+      );
+    } else {
+      const blockedNode = down
+        ? contextMenu.id
+        : liveDownNode === contextMenu.id
+          ? ""
+          : liveDownNode;
+      setLiveDownNode(blockedNode);
+      setBaseline(before);
+      setPreview(
+        route(
+          topology,
+          source,
+          destination,
+          protocol,
+          packetSizes[packet],
+          blockedNode,
+        ),
+      );
+      setNodes((items) =>
+        items.map((node) =>
+          node.id === contextMenu.id
+            ? { ...node, data: { ...node.data, status: down ? "down" : "up" } }
+            : node,
+        ),
+      );
+    }
+    setLogs((items) => [
+      `LIVE · ${contextMenu.kind} ${contextMenu.id} changed ${down ? "DOWN" : "UP"}`,
+      ...items,
+    ]);
+    setContextMenu(null);
+  }
+  function renameContextItem() {
+    if (!topology || !contextMenu || contextMenu.kind !== "node") return;
+    const next = prompt("Custom device name", contextMenu.id)
+      ?.trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9-]+/g, "-");
+    if (!next || topology.nodes.some((node) => node.id === next)) return;
+    const old = contextMenu.id;
+    setTopology({
+      ...topology,
+      nodes: topology.nodes.map((node) =>
+        node.id === old ? { ...node, id: next } : node,
+      ),
+      links: topology.links.map((link) => ({
+        ...link,
+        a: {
+          ...link.a,
+          node_id: link.a.node_id === old ? next : link.a.node_id,
+        },
+        b: {
+          ...link.b,
+          node_id: link.b.node_id === old ? next : link.b.node_id,
+        },
+      })),
+    });
+    setNodes((items) =>
+      items.map((node) =>
+        node.id === old
+          ? { ...node, id: next, data: { ...node.data, label: next } }
+          : node,
+      ),
+    );
+    setEdges((items) =>
+      items.map((edge) => ({
+        ...edge,
+        source: edge.source === old ? next : edge.source,
+        target: edge.target === old ? next : edge.target,
+      })),
+    );
+    if (source === old) setSource(next);
+    if (destination === old) setDestination(next);
+    setContextMenu(null);
+  }
+  function deleteContextItem() {
+    if (!topology || !contextMenu) return;
+    if (contextMenu.kind === "link") {
+      setTopology({
+        ...topology,
+        links: topology.links.filter((link) => link.id !== contextMenu.id),
+        expected_baseline_paths: [],
+      });
+      setEdges((items) => items.filter((edge) => edge.id !== contextMenu.id));
+    } else {
+      const connected = new Set(
+        topology.links
+          .filter(
+            (link) =>
+              link.a.node_id === contextMenu.id ||
+              link.b.node_id === contextMenu.id,
+          )
+          .map((link) => link.id),
+      );
+      setTopology({
+        ...topology,
+        nodes: topology.nodes.filter((node) => node.id !== contextMenu.id),
+        links: topology.links.filter((link) => !connected.has(link.id)),
+        expected_baseline_paths: [],
+      });
+      setNodes((items) => items.filter((node) => node.id !== contextMenu.id));
+      setEdges((items) => items.filter((edge) => !connected.has(edge.id)));
+    }
+    setContextMenu(null);
   }
   if (topologyQuery.isLoading)
     return <section className="panel">Loading simulator…</section>;
@@ -552,6 +717,11 @@ export function Simulator() {
             {topology.nodes.length}/50 devices · {topology.links.length} links ·
             SIMULATED
           </p>
+          {searchParams.get("planner") && (
+            <span className="planner-badge">
+              Generated by {searchParams.get("planner")}
+            </span>
+          )}
         </div>
         <div className="header-actions">
           <span>{saveState}</span>
@@ -580,7 +750,7 @@ export function Simulator() {
             ))}
           </div>
           <p className="toolbox-note">
-            Drag devices, connect their handles, then save.
+            Drag devices, connect handles, or right-click a device/link for live controls.
           </p>
           <label>
             Selected device
@@ -630,13 +800,32 @@ export function Simulator() {
             }))}
             edges={edges.map((edge) => ({
               ...edge,
-              className: edge.id === activeEdge ? "edge-active" : "",
+              className: `${edge.className ?? ""} ${edge.id === activeEdge ? "edge-active" : ""}`,
             }))}
             nodeTypes={nodeTypes}
             onNodesChange={onNodesChange}
             onEdgesChange={onEdgesChange}
             onConnect={connect}
             onNodeClick={(_, node) => setSelected(node.id)}
+            onPaneClick={() => setContextMenu(null)}
+            onNodeContextMenu={(event, node) => {
+              event.preventDefault();
+              setContextMenu({
+                kind: "node",
+                id: node.id,
+                x: event.clientX,
+                y: event.clientY,
+              });
+            }}
+            onEdgeContextMenu={(event, edge) => {
+              event.preventDefault();
+              setContextMenu({
+                kind: "link",
+                id: edge.id,
+                x: event.clientX,
+                y: event.clientY,
+              });
+            }}
             fitView
           >
             <Background gap={22} size={1} />
@@ -741,7 +930,9 @@ export function Simulator() {
           </div>
           <div className="simulation-actions">
             <button
-              disabled={!source || !destination || source === destination || !target}
+              disabled={
+                !source || !destination || source === destination || !target
+              }
               onClick={calculatePreview}
             >
               Preview
@@ -763,6 +954,28 @@ export function Simulator() {
                   ? "Alternate path available"
                   : "Network partition detected"}
               </strong>
+              <div className="comparison-grid">
+                <section>
+                  <small>Before</small>
+                  <strong>{baseline?.total.toFixed(3) ?? "—"} ms</strong>
+                </section>
+                <section>
+                  <small>After</small>
+                  <strong>{preview.total.toFixed(3)} ms</strong>
+                </section>
+                <section>
+                  <small>Delay change</small>
+                  <strong>
+                    {baseline
+                      ? `${(preview.total - baseline.total).toFixed(3)} ms`
+                      : "—"}
+                  </strong>
+                </section>
+                <section>
+                  <small>Reachability</small>
+                  <strong>{preview.reachable ? "Available" : "Down"}</strong>
+                </section>
+              </div>
               <dl>
                 <div>
                   <dt>Total delay</dt>
@@ -854,6 +1067,25 @@ export function Simulator() {
           {assistantAnswer && <p>{assistantAnswer}</p>}
         </article>
       </section>
+      {contextMenu && (
+        <div
+          className="network-context-menu"
+          style={{ left: contextMenu.x, top: contextMenu.y }}
+          role="menu"
+        >
+          <strong>
+            {contextMenu.kind === "node" ? "Device" : "Link"}: {contextMenu.id}
+          </strong>
+          <button onClick={() => setLiveState(true)}>Set down now</button>
+          <button onClick={() => setLiveState(false)}>Restore live</button>
+          {contextMenu.kind === "node" && (
+            <button onClick={renameContextItem}>Rename device</button>
+          )}
+          <button className="danger-menu" onClick={deleteContextItem}>
+            Delete {contextMenu.kind}
+          </button>
+        </div>
+      )}
     </div>
   );
 }

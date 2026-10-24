@@ -8,5 +8,39 @@ const links = [["/", "My networks"]] as const;
 
 export function AppShell() {
   const navigate = useNavigate();
-  return <div className="app-shell"><a className="skip-link" href="#content">Skip to content</a><aside className="sidebar"><div className="brand">NETMIND <span>STUDENT LAB</span></div><nav aria-label="Main navigation">{links.map(([to, label]) => <NavLink key={to} to={to} end={to === "/"}>{label}</NavLink>)}</nav><div className="sidebar-spacer" /><StatusPill status="warning">SIMULATED</StatusPill><button className="sidebar-action" onClick={async () => { await signOut(auth); navigate("/login"); }}>Sign out</button></aside><div className="shell-main"><header className="topbar"><span className="eyebrow">NETWORK DESIGN & SIMULATION STUDIO</span><ThemeToggle /></header><main id="content" className="page-content"><Outlet /></main></div></div>;
+  return (
+    <div className="app-shell">
+      <a className="skip-link" href="#content">
+        Skip to content
+      </a>
+      <header className="topbar">
+        <div className="brand">
+          NETMIND <span>LIVE LAB</span>
+        </div>
+        <span className="eyebrow">NETWORK DESIGN & SIMULATION STUDIO</span>
+      </header>
+      <main id="content" className="page-content">
+        <Outlet />
+      </main>
+      <nav className="bottom-pill" aria-label="Main navigation">
+        <div className="pill-brand">NM</div>
+        {links.map(([to, label]) => (
+          <NavLink key={to} to={to} end={to === "/"}>
+            {label}
+          </NavLink>
+        ))}
+        <StatusPill status="warning">SIMULATED</StatusPill>
+        <ThemeToggle />
+        <button
+          className="pill-signout"
+          onClick={async () => {
+            await signOut(auth);
+            navigate("/login");
+          }}
+        >
+          Sign out
+        </button>
+      </nav>
+    </div>
+  );
 }

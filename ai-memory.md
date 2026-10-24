@@ -250,3 +250,12 @@
 - Limits: routing and protocol behavior is an educational `SIMULATED` calculation, not a discrete-event implementation or physical packet capture. `SIMULATED_AI_PLANNER` is deterministic and local; it does not call NVIDIA/Gemini for topology generation.
 - Correction (2026-10-24): fixed a live PostgreSQL 500 when deleting the seeded demo network. The ORM now uses database-compatible device cascade deletion. Verified network 4 loads, adding a router changes 6/50 to 7/50, fault preview reroutes over the backup path, and a generated six-device network completed create/load/delete with HTTP 204. API tests: 10 passed; browser console: no errors or warnings.
 - Manual-builder correction (2026-10-24): added a visible `Create blank network — build it myself` workflow. Empty topology documents are now valid, the simulator handles zero nodes safely, and Preview remains disabled until a meaningful source, destination, and target exist. Live verification created an empty 0/50 canvas, added a router, saved it to PostgreSQL, reloaded, and retained the router. Focused backend tests: 16 passed; frontend production build passed.
+
+## NM-STUDENT-SIM — AI generation and interactive canvas correction
+
+- Status: COMPLETE
+- Started: 2026-10-24
+- Scope: enable configured NVIDIA topology intent parsing, redesign navigation/canvas, animate simulated traffic, and make right-click device/link state changes recalculate impact.
+- Observed: a live API request interpreted a 14-device hospital/RIP prompt through NVIDIA and returned `source=NVIDIA`; the generated graph remains server-validated and deterministic. The browser rendered the floating bottom pill, rounded device cards, animated link traffic, and a right-click link menu. Setting a link down immediately displayed before/after delay, reachability, route dependency, and a `LIVE` event-log entry with zero browser errors.
+- Verification: full backend suite 132 passed; Ruff passed; frontend production build passed with the existing >500 kB chunk warning. Browser smoke covered right-click state change and automatic impact calculation against the running local stack.
+- Limits: traffic and timing are labelled `SIMULATED`; this is an educational calculator, not packet capture. NVIDIA interprets topology intent while the allowlisted local builder creates the validated graph. One device can be held down through the immediate canvas control at a time; use the scenario preview for other concurrent what-if faults.

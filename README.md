@@ -17,9 +17,10 @@ NetMind is a local-only teaching simulator for designing and testing computer ne
 2. Sign in as `student@netmind.local` with `NetMindDemo!2026`.
 3. Choose one of 20 ready-made 50-device labs, or generate your own.
 4. Drag devices onto the canvas and connect their handles.
-5. Select routing, packet, source, destination, failure, and target.
-6. Click **Preview** to inspect the impact without changing the lab.
-7. Click **Confirm & execute** to animate the simulated result and logs.
+5. Right-click a device or link to rename, delete, take down, or restore it; impact recalculates immediately.
+6. Select routing, packet, source, destination, failure, and target.
+7. Click **Preview** to inspect the impact without changing the lab.
+8. Click **Confirm & execute** to animate the simulated result and logs.
 8. Click **Save network** to persist the topology in local PostgreSQL.
 
 ## Stable handoff: v0.1.0

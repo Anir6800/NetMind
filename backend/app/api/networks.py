@@ -42,7 +42,7 @@ class GenerateRequest(BaseModel):
 class GeneratedNetwork(BaseModel):
     network: NetworkResponse
     topology: Topology
-    source: Literal["SIMULATED_AI_PLANNER"] = "SIMULATED_AI_PLANNER"
+    source: Literal["NVIDIA", "SIMULATED_AI_PLANNER"]
 
 
 @router.get("", response_model=list[NetworkResponse])
@@ -57,8 +57,8 @@ def create_network(request: NetworkDocument, session: Annotated[Session, Depends
 
 @router.post("/generate", response_model=GeneratedNetwork, status_code=201)
 def generate_network(request: GenerateRequest, session: Annotated[Session, Depends(get_session)]) -> GeneratedNetwork:
-    network, topology = NetworksService(session).generate(request.name, request.device_count, request.category, request.protocol, request.prompt)
-    return GeneratedNetwork(network=network, topology=topology)
+    network, topology, source = NetworksService(session).generate(request.name, request.device_count, request.category, request.protocol, request.prompt)
+    return GeneratedNetwork(network=network, topology=topology, source=source)
 
 
 @router.put("/{network_id}", response_model=NetworkResponse)

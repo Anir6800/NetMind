@@ -4,6 +4,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy.pool import StaticPool
 
 from app.api.telemetry import store as telemetry_store
+from app.core.config import get_settings
 from app.db.models import Base
 from app.db.session import get_session
 from app.main import app
@@ -39,7 +40,9 @@ def test_network_and_incident_endpoints_return_typed_data() -> None:
         assert api.get("/incidents?limit=1").json()[0]["title"] == "Demo incident"
 
 
-def test_generates_and_persists_fifty_device_student_topology() -> None:
+def test_generates_and_persists_fifty_device_student_topology(monkeypatch) -> None:
+    monkeypatch.setenv("NETMIND_NVIDIA_FIXTURE_MODE", "true")
+    get_settings.cache_clear()
     with client() as api:
         response = api.post("/networks/generate", json={"name": "Campus lab", "category": "campus", "device_count": 50, "protocol": "ospf", "prompt": "Create 50 devices"})
         assert response.status_code == 201
@@ -48,6 +51,7 @@ def test_generates_and_persists_fifty_device_student_topology() -> None:
         assert len(generated["topology"]["nodes"]) == 50
         network_id = generated["network"]["id"]
         assert len(api.get(f"/networks/{network_id}/topology").json()["topology"]["nodes"]) == 50
+    get_settings.cache_clear()
 
 
 def test_creates_empty_manual_topology() -> None:

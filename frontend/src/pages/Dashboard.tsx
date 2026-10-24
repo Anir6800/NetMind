@@ -44,9 +44,9 @@ export function Dashboard() {
   );
   const generate = useMutation({
     mutationFn: generateNetwork,
-    onSuccess: ({ network }) => {
+    onSuccess: ({ network, source }) => {
       queryClient.invalidateQueries({ queryKey: ["networks"] });
-      navigate(`/simulator/${network.id}`);
+      navigate(`/simulator/${network.id}?planner=${source}`);
     },
   });
   const createBlank = useMutation({

@@ -18,6 +18,12 @@ def test_fixture_mode_is_deterministic() -> None:
     assert first.model_dump(exclude={"latency_ms"}) == second.model_dump(exclude={"latency_ms"})
 
 
+def test_network_planner_uses_labelled_local_fallback_in_fixture_mode() -> None:
+    client = NvidiaClient(Settings(nvidia_api_key="secret", nvidia_fixture_mode=True))
+
+    assert client.plan_network("build a campus network", {"device_count": 12}) is None
+
+
 def test_retries_then_opens_circuit_without_exposing_key(caplog) -> None:
     calls = 0
 
