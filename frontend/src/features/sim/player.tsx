@@ -21,7 +21,7 @@ export function PlayerControls() {
         <button onClick={() => set({ clock: 0, playing: false })}>⟲ Reset</button>
         <label className="speed">
           Speed
-          <select value={speed} onChange={(event) => set({ speed: Number(event.target.value) })}>
+          <select aria-label="Speed" value={speed} onChange={(event) => set({ speed: Number(event.target.value) })}>
             {SPEEDS.map((value) => (
               <option key={value} value={value}>
                 {value}×
@@ -177,7 +177,7 @@ export function RunLog({ run, label }: { run: SimRun; label: (id: string) => str
         {(["device", "packet", "layer", "protocol"] as const).map((key) => (
           <label key={key}>
             {key}
-            <select value={filters[key]} onChange={(event) => setFilters({ ...filters, [key]: event.target.value })}>
+            <select aria-label={`Filter ${key}`} value={filters[key]} onChange={(event) => setFilters({ ...filters, [key]: event.target.value })}>
               <option value="">all</option>
               {options[key].map((value) => (
                 <option key={value} value={value}>

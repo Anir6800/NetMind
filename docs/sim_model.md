@@ -62,6 +62,25 @@ For a packet of `B` bytes crossing a link of bandwidth `C` Mbps:
 | RIP (`R`) | router hops, max 15 (16 = unreachable) | Re-converges (see `convergence.ts` and §6) |
 | OSPF (`O`) | sum of interface costs, `cost = 1000 Mbps / bandwidth` (min 1, overridable per link) | Re-converges (see §6) |
 
+## 4a. Convergence after a change (`convergence.ts`)
+
+Each router keeps its own view and the result is replayed on a timeline; when it settles the tables equal §4 on the new topology (unit-tested).
+
+**Detection**
+* Carrier loss (the failed link is directly attached, or the neighbour on that cable powered off): detected at t = 0.
+* Failure behind a switch (the router's own interface stays up): only a timer notices — OSPF dead interval 40 s (hello 10 s, so 30–40 s after the failure) or RIP invalid timer 180 s (150–180 s). The neighbour on the broken side may still detect immediately.
+* An interface that loses every link withdraws its connected route.
+
+**RIP (educational timers, all seeded):** periodic full update every 30 s per router (random phase), triggered updates 1–5 s after a change, Bellman-Ford (`metric = advertised + 1`, 16 = unreachable), a route from the current next hop is always accepted (even if worse), invalid 180 s, flush 240 s (unreachable routes are removed 60 s after reaching 16). Split horizon with poison reverse can be switched off; without it (and without triggered updates) a ring shows count-to-infinity. Hold-down timers are not modelled.
+
+**OSPF (educational):** neighbour detection as above; new adjacency after the next hello (0–10 s) with database exchange; the detecting router originates a new Router-LSA (neighbours with interface cost, connected prefixes) which is flooded hop by hop (link delay + 1 ms processing), each router installs newer LSAs and refloods; SPF runs 200 ms after the first new LSA, using only links listed by both ends (two-way check). Areas, DR/BDR and LSA types other than Router-LSA are not modelled.
+
+**Static:** routes never change by themselves; traffic over a failed next hop is blackholed until the student restores the link or edits the design.
+
+**Outputs:** detection time, convergence time (last table change, excluding flushes), per-router change count, the student flow's outage (table states replayed through the same forwarding function) and packets lost at 100 packets/s. "Compare Static vs RIP vs OSPF" runs all three on the same change.
+
+**Traceroute:** probes with TTL 1, 2, 3… using the same forwarding function; each router where TTL reaches 0 replies ICMP Time Exceeded, the destination replies Port Unreachable; RTT = analytical delay to the replier and back.
+
 ## 5. Packet simulator (discrete events)
 
 * Each packet's path is exactly `forward()` from the engine; the simulator adds time.

@@ -21,7 +21,9 @@ import { ImpactCard, Legend, LinkInspector, NodeInspector, Palette } from "../fe
 import { set as setPlayback, usePlayback } from "../features/sim/playback";
 import { PacketInspector, PacketList, PlayerControls, RunLog } from "../features/sim/player";
 import { simulate } from "../sim/des";
+import { ConvergencePanel, LearnedTables, RouteTable, TraceroutePanel } from "../features/sim/tables";
 import {
+  DEVICE_LAYER,
   PACKET_BYTES,
   analyzeFlow,
   applyFault,
@@ -104,6 +106,7 @@ function Studio() {
   const [menu, setMenu] = useState<Menu | null>(null);
   const [impact, setImpact] = useState<{ title: string; impact: Impact; pending?: Fault } | null>(null);
   const [previousTables, setPreviousTables] = useState<Tables | null>(null);
+  const [change, setChange] = useState<{ title: string; before: Topology; after: Topology } | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [faultKind, setFaultKind] = useState<FaultKind>("link-down");
   const [faultTarget, setFaultTarget] = useState("");
@@ -232,6 +235,7 @@ function Studio() {
     const started = performance.now();
     const result = compareImpact(topology, next, { ...primary, protocol });
     setPreviousTables(tables);
+    setChange({ title, before: topology, after: next });
     commit(next);
     setImpact({ title, impact: result });
     log(
@@ -404,7 +408,8 @@ function Studio() {
   const primaryResult = results[0];
   const faultTargets = faultKind.startsWith("node") ? topology.nodes : topology.links;
   const routers = topology.nodes.filter(isL3);
-  const tableDevice = focusNode && isL3(focusNode) ? focusNode.id : routers.find((node) => node.type === "router")?.id;
+  const tableDevice = focusNode ? focusNode.id : routers.find((node) => node.type === "router")?.id;
+  const tableNode = tableDevice ? byId.get(tableDevice) : undefined;
 
   return (
     <div className="studio" onKeyDown={onKeyDown}>
@@ -549,6 +554,7 @@ function Studio() {
                 <label>
                   Connect to
                   <select
+                    aria-label="Connect to"
                     value=""
                     onChange={(event) => event.target.value && connect(focusNode.id, event.target.value)}
                   >
@@ -591,7 +597,7 @@ function Studio() {
               <div className="field-grid">
                 <label>
                   Routing
-                  <select value={protocol} onChange={(event) => setProtocol(event.target.value as Protocol)}>
+                  <select aria-label="Routing" value={protocol} onChange={(event) => setProtocol(event.target.value as Protocol)}>
                     <option value="static">Static</option>
                     <option value="rip">RIP</option>
                     <option value="ospf">OSPF</option>
@@ -599,7 +605,7 @@ function Studio() {
                 </label>
                 <label>
                   Packet
-                  <select value={primary?.app ?? "ICMP"} onChange={(event) => setFlows(([first, ...rest]) => (first ? [{ ...first, app: event.target.value }, ...rest] : []))}>
+                  <select aria-label="Packet" value={primary?.app ?? "ICMP"} onChange={(event) => setFlows(([first, ...rest]) => (first ? [{ ...first, app: event.target.value }, ...rest] : []))}>
                     {Object.keys(PACKET_BYTES).map((app) => (
                       <option key={app}>{app}</option>
                     ))}
@@ -607,7 +613,7 @@ function Studio() {
                 </label>
                 <label>
                   Source
-                  <select value={primary?.src ?? ""} onChange={(event) => setEndpoint("src", event.target.value)}>
+                  <select aria-label="Source" value={primary?.src ?? ""} onChange={(event) => setEndpoint("src", event.target.value)}>
                     {topology.nodes.filter(isL3).map((node) => (
                       <option key={node.id} value={node.id}>
                         {labelOf(node)}
@@ -617,7 +623,7 @@ function Studio() {
                 </label>
                 <label>
                   Destination
-                  <select value={primary?.dst ?? ""} onChange={(event) => setEndpoint("dst", event.target.value)}>
+                  <select aria-label="Destination" value={primary?.dst ?? ""} onChange={(event) => setEndpoint("dst", event.target.value)}>
                     {topology.nodes.filter(isL3).map((node) => (
                       <option key={node.id} value={node.id}>
                         {labelOf(node)}
@@ -670,6 +676,7 @@ function Studio() {
                   <label>
                     Fault
                     <select
+                      aria-label="Fault"
                       value={faultKind}
                       onChange={(event) => {
                         const next = event.target.value as FaultKind;
@@ -686,7 +693,7 @@ function Studio() {
                   </label>
                   <label>
                     Target
-                    <select value={faultTarget} onChange={(event) => setFaultTarget(event.target.value)}>
+                    <select aria-label="Target" value={faultTarget} onChange={(event) => setFaultTarget(event.target.value)}>
                       {faultTargets.map((item) => (
                         <option key={item.id} value={item.id}>
                           {"type" in item ? labelOf(item) : `${item.id} (${label(item.a.node_id)}↔${label(item.b.node_id)})`}
@@ -747,44 +754,32 @@ function Studio() {
           )}
           {panel === "tables" && (
             <div className="tables-panel">
-              <p className="eyebrow">ROUTING TABLE · {protocol.toUpperCase()}</p>
+              <p className="eyebrow">TABLES · {protocol.toUpperCase()} · LIVE</p>
               <label>
                 Device
-                <select value={tableDevice ?? ""} onChange={(event) => setFocus({ kind: "node", id: event.target.value })}>
-                  {routers.map((node) => (
+                <select aria-label="Table device" value={tableDevice ?? ""} onChange={(event) => setFocus({ kind: "node", id: event.target.value })}>
+                  {topology.nodes.map((node) => (
                     <option key={node.id} value={node.id}>
                       {labelOf(node)} ({node.type})
                     </option>
                   ))}
                 </select>
               </label>
-              {tableDevice && (
-                <table className="route-table">
-                  <thead>
-                    <tr>
-                      <th>Code</th>
-                      <th>Prefix</th>
-                      <th>Next hop</th>
-                      <th>Iface</th>
-                      <th>Metric</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(tables.get(tableDevice) ?? []).map((route) => {
-                      const old = previousTables?.get(tableDevice)?.find((item) => item.prefix === route.prefix);
-                      const changed = previousTables && (!old || old.nextHop !== route.nextHop || old.metric !== route.metric);
-                      return (
-                        <tr key={route.prefix} className={changed ? "row-changed" : ""}>
-                          <td>{route.code}</td>
-                          <td>{route.prefix}</td>
-                          <td>{route.nextHop ? label(route.nextHop) : "connected"}</td>
-                          <td>{route.iface}</td>
-                          <td>{route.metric}</td>
-                        </tr>
-                      );
-                    })}
-                  </tbody>
-                </table>
+              {tableNode && (
+                <>
+                  {isL3(tableNode) ? (
+                    <RouteTable device={tableNode.id} tables={tables} previous={previousTables} label={label} />
+                  ) : (
+                    <p className="hint">{labelOf(tableNode)} is a layer {DEVICE_LAYER[tableNode.type]} device: it has no routing table.</p>
+                  )}
+                  {DEVICE_LAYER[tableNode.type] !== 1 && <LearnedTables device={tableNode.id} isSwitch={DEVICE_LAYER[tableNode.type] === 2} label={label} topology={topology} />}
+                </>
+              )}
+              <TraceroutePanel topology={topology} protocol={protocol} flow={primary} label={label} />
+              {change ? (
+                <ConvergencePanel change={change} protocol={protocol} flow={primary} label={label} isRouter={(id) => ["router", "firewall"].includes(byId.get(id)?.type ?? "")} />
+              ) : (
+                <p className="hint">Set a link or device down (right-click) to see the convergence timeline for that change.</p>
               )}
             </div>
           )}

@@ -267,3 +267,9 @@ h1, h2, h3 { margin: 0; }
 .player-dock .player { background: color-mix(in srgb, var(--nm-surface) 94%, transparent); backdrop-filter: blur(10px); box-shadow: 0 14px 40px rgba(0, 0, 0, .45); }
 .player button { min-height: 2.3rem; padding: 0 .8rem; border: 1px solid var(--nm-border-strong); border-radius: 999px; background: var(--nm-surface-raised); font-weight: 600; }
 .player button:first-child { border: 0; color: #031716; background: linear-gradient(135deg, var(--nm-primary-hover), var(--nm-accent)); }
+.convergence, .traceroute { display: grid; gap: .6rem; padding-top: .6rem; border-top: 1px solid var(--nm-border); }
+.convergence h3 { font-size: .95rem; }
+.event-log li.is-route { border-left-color: var(--nm-warning); }
+.seed-field { width: 5.5rem; }
+.route-table caption { text-align: left; padding-bottom: .3rem; }
+.route-table small { color: var(--nm-text-muted); }

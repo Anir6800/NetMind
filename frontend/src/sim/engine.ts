@@ -174,7 +174,7 @@ export function longestPrefixMatch(routes: Route[], ip: string): Route | undefin
 
 // Shortest paths over the L3 graph. RIP and static use hop count, OSPF uses
 // cost = reference bandwidth / bandwidth of the outgoing interface.
-function shortestFrom(
+export function shortestFrom(
   start: string,
   adjacency: Map<string, Adjacency[]>,
   weight: (hop: Adjacency, topology: Topology) => number,
@@ -208,47 +208,71 @@ function interfaceOn(topology: Topology, nodeId: string, linkId: string) {
   return (link.a.node_id === nodeId ? link.a.interface_id : link.b.interface_id) ?? "?";
 }
 
+// Prefixes each L3 device advertises: the subnet of every interface that has
+// at least one up link to an up device (a dead interface withdraws its
+// connected route). Several devices can share a prefix (a router's LAN
+// interface and the hosts behind it).
+export function prefixOwners(topology: Topology): Map<string, string[]> {
+  const up = new Set(topology.nodes.filter((node) => node.state !== "down").map((node) => node.id));
+  const live = new Set<string>();
+  for (const link of topology.links)
+    if (link.state !== "down" && up.has(link.a.node_id) && up.has(link.b.node_id))
+      for (const end of [link.a, link.b]) live.add(`${end.node_id}|${end.interface_id}`);
+  const owners = new Map<string, string[]>();
+  for (const node of topology.nodes)
+    if (isL3(node) && up.has(node.id))
+      for (const item of node.interfaces) {
+        const prefix = networkOf(item.address);
+        if (live.has(`${node.id}|${item.id}`) && !owners.get(prefix)?.includes(node.id))
+          owners.set(prefix, [...(owners.get(prefix) ?? []), node.id]);
+      }
+  return owners;
+}
+
+export const routeWeight = (topology: Topology, protocol: Protocol) => {
+  const links = linkById(topology);
+  return protocol === "ospf" ? (hop: Adjacency) => ospfCost(links.get(hop.links[0])!) : () => 1;
+};
+
+// One device's table from shortest-path results (used by computeTables and
+// by the convergence simulator's per-router SPF).
+export function routesFrom(
+  node: TopologyNode,
+  result: ReturnType<typeof shortestFrom>,
+  owners: Map<string, string[]>,
+  basis: Topology,
+  protocol: Protocol,
+): Route[] {
+  const { distance, first } = result;
+  const code = protocol === "static" ? "S" : protocol === "rip" ? "R" : "O";
+  const routes: Route[] = [];
+  for (const [prefix, ids] of owners) {
+    if (ids.includes(node.id)) {
+      const local = node.interfaces.find((item) => networkOf(item.address) === prefix)!;
+      routes.push({ prefix, dest: node.id, nextHop: null, iface: local.id, metric: 0, code: "C" });
+      continue;
+    }
+    const owner = ids.filter((id) => distance.has(id)).sort((a, b) => distance.get(a)! - distance.get(b)!)[0];
+    if (!owner) continue;
+    const metric = distance.get(owner)!;
+    if (protocol === "rip" && metric >= RIP_INFINITY) continue;
+    const hop = first.get(owner)!;
+    routes.push({ prefix, dest: owner, nextHop: hop.neighbour, iface: interfaceOn(basis, node.id, hop.links[0]), metric, code });
+  }
+  return routes;
+}
+
 export function computeTables(topology: Topology, protocol: Protocol): Tables {
   // Static routes are configured at design time (all links up) and never
   // change by themselves when something fails.
   const basis = protocol === "static" ? allUp(topology) : topology;
   const adjacency = l3Adjacencies(basis);
-  const links = linkById(basis);
-  const weight =
-    protocol === "ospf"
-      ? (hop: Adjacency) => ospfCost(links.get(hop.links[0])!)
-      : () => 1;
-  const code = protocol === "static" ? "S" : protocol === "rip" ? "R" : "O";
-  // Every interface subnet is a prefix; several devices can share one (a
-  // router's LAN interface and the hosts behind it).
-  const owners = new Map<string, string[]>();
-  for (const node of topology.nodes)
-    if (isL3(node))
-      for (const item of node.interfaces) {
-        const prefix = networkOf(item.address);
-        if (!owners.get(prefix)?.includes(node.id)) owners.set(prefix, [...(owners.get(prefix) ?? []), node.id]);
-      }
+  const weight = routeWeight(basis, protocol);
+  const owners = prefixOwners(basis);
   const tables: Tables = new Map();
   for (const node of topology.nodes) {
     if (!isL3(node) || !adjacency.has(node.id)) continue;
-    const { distance, first } = shortestFrom(node.id, adjacency, weight, basis);
-    const routes: Route[] = [];
-    for (const [prefix, ids] of owners) {
-      if (ids.includes(node.id)) {
-        const local = node.interfaces.find((item) => networkOf(item.address) === prefix)!;
-        routes.push({ prefix, dest: node.id, nextHop: null, iface: local.id, metric: 0, code: "C" });
-        continue;
-      }
-      const owner = ids
-        .filter((id) => distance.has(id))
-        .sort((a, b) => distance.get(a)! - distance.get(b)!)[0];
-      if (!owner) continue;
-      const metric = distance.get(owner)!;
-      if (protocol === "rip" && metric >= RIP_INFINITY) continue;
-      const hop = first.get(owner)!;
-      routes.push({ prefix, dest: owner, nextHop: hop.neighbour, iface: interfaceOn(basis, node.id, hop.links[0]), metric, code });
-    }
-    tables.set(node.id, routes);
+    tables.set(node.id, routesFrom(node, shortestFrom(node.id, adjacency, weight, basis), owners, basis, protocol));
   }
   return tables;
 }
@@ -290,7 +314,7 @@ export function forward(
   while (current !== dst) {
     if (trace.l3Hops.length > 64) return drop(current, "routing loop");
     const route = longestPrefixMatch(tables.get(current) ?? [], ipOf(byId.get(dst)));
-    if (!route)
+    if (!route || (route.code === "R" && route.metric >= RIP_INFINITY))
       return drop(current, `no route to ${ipOf(byId.get(dst))}`);
     // A connected route delivers onto the local segment (after ARP).
     const next = route.nextHop ?? dst;
