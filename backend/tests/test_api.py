@@ -50,6 +50,16 @@ def test_generates_and_persists_fifty_device_student_topology() -> None:
         assert len(api.get(f"/networks/{network_id}/topology").json()["topology"]["nodes"]) == 50
 
 
+def test_deletes_network_with_persisted_devices() -> None:
+    with client() as api:
+        session = next(iter(app.dependency_overrides[get_session]()))
+        NetworksRepository(session).add_device(1, "host-a", "host")
+        session.commit()
+
+        assert api.delete("/networks/1").status_code == 204
+        assert api.get("/networks/1/topology").status_code == 404
+
+
 def test_incident_detail_includes_its_audit_evidence() -> None:
     with client() as api:
         session = next(iter(app.dependency_overrides[get_session]()))
