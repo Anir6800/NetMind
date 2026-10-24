@@ -287,8 +287,8 @@ export function Simulator() {
     const endpoints = loaded.nodes.filter((node) =>
       ["host", "server"].includes(node.type),
     );
-    setSource(endpoints[0]?.id ?? loaded.nodes[0].id);
-    setDestination(endpoints.at(-1)?.id ?? loaded.nodes.at(-1)!.id);
+    setSource(endpoints[0]?.id ?? loaded.nodes[0]?.id ?? "");
+    setDestination(endpoints.at(-1)?.id ?? loaded.nodes.at(-1)?.id ?? "");
     const baselineLinks = loaded.expected_baseline_paths?.[0]?.link_ids ?? [];
     setTarget(
       baselineLinks[Math.floor(baselineLinks.length / 2)] ??
@@ -351,13 +351,7 @@ export function Simulator() {
       ),
       expected_baseline_paths: topology.expected_baseline_paths?.length
         ? topology.expected_baseline_paths
-        : [
-            {
-              source_host_id: source,
-              destination_host_id: destination,
-              link_ids: [],
-            },
-          ],
+        : [],
     };
   }
   function connect(connection: Connection) {
@@ -746,7 +740,12 @@ export function Simulator() {
             </label>
           </div>
           <div className="simulation-actions">
-            <button onClick={calculatePreview}>Preview</button>
+            <button
+              disabled={!source || !destination || source === destination || !target}
+              onClick={calculatePreview}
+            >
+              Preview
+            </button>
             <button
               className="danger-solid"
               disabled={!preview}

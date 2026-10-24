@@ -67,9 +67,9 @@ class BaselinePath(BaseModel):
 class Topology(BaseModel):
     version: str = Field(pattern=r"^v\d+$")
     addressing_plan: str
-    nodes: list[Node] = Field(min_length=1)
-    links: list[Link] = Field(min_length=1)
-    expected_baseline_paths: list[BaselinePath] = Field(min_length=1)
+    nodes: list[Node] = Field(default_factory=list)
+    links: list[Link] = Field(default_factory=list)
+    expected_baseline_paths: list[BaselinePath] = Field(default_factory=list)
 
     @model_validator(mode="after")
     def valid_graph(self) -> "Topology":

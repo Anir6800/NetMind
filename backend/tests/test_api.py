@@ -50,6 +50,16 @@ def test_generates_and_persists_fifty_device_student_topology() -> None:
         assert len(api.get(f"/networks/{network_id}/topology").json()["topology"]["nodes"]) == 50
 
 
+def test_creates_empty_manual_topology() -> None:
+    with client() as api:
+        response = api.post("/networks", json={"name": "Blank lab", "topology": {"version": "v1", "addressing_plan": "Not configured", "nodes": [], "links": [], "expected_baseline_paths": []}})
+
+        assert response.status_code == 201
+        topology = api.get(f"/networks/{response.json()['id']}/topology").json()["topology"]
+        assert topology["nodes"] == []
+        assert topology["links"] == []
+
+
 def test_deletes_network_with_persisted_devices() -> None:
     with client() as api:
         session = next(iter(app.dependency_overrides[get_session]()))
