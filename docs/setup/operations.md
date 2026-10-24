@@ -27,7 +27,6 @@ npm ci --prefix frontend
 | API (FastAPI) | `127.0.0.1:8000` | API and health endpoint. |
 | PostgreSQL | `127.0.0.1:5432` | Local Compose database only. |
 | Auth emulator | `127.0.0.1:9099` | Firebase Auth emulator used in development. |
-| Auth emulator UI | `127.0.0.1:4000` | Local emulator inspection UI. |
 | Simulation controller | `127.0.0.1:8765` | Token-authenticated JSON-RPC controller; never browser-facing. |
 
 If a port is occupied, stop the process using it; do not change a service to `0.0.0.0` to work around the conflict.

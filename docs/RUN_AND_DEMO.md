@@ -34,7 +34,6 @@ When ready, the launcher prints a healthy service table, opens the browser, and 
 | Frontend | http://127.0.0.1:5173 |
 | API health | http://127.0.0.1:8000/health |
 | Firebase Auth emulator | `127.0.0.1:9099` |
-| Firebase emulator UI | http://127.0.0.1:4000 |
 | PostgreSQL | `127.0.0.1:5432` |
 | Controller | `127.0.0.1:8765` (token-only, not browser-facing) |
 
@@ -57,7 +56,7 @@ Useful switches: `./run.ps1 -Check` performs only prerequisites/port checks; `-N
 
 | Problem | Exact fix |
 | --- | --- |
-| Port in use | Run `Get-NetTCPConnection -State Listen | Where-Object LocalPort -in 5432,8000,5173,9099,4000,8765`; close the listed process, or run `.\stop.ps1` for a prior NetMind run. |
+| Port in use | Run `Get-NetTCPConnection -State Listen | Where-Object LocalPort -in 5432,8000,5173,9099,8765`; close the listed process, or run `.\stop.ps1` for a prior NetMind run. If Docker owns `5432` for the `netmind-postgres-1` container, rerun `.\run.ps1`; it now reuses that NetMind database automatically. |
 | Docker not running | Start Docker Desktop, wait for **Engine running**, then run `docker version` and `.\run.ps1`. |
 | Execution policy blocked | Use `powershell -NoProfile -ExecutionPolicy Bypass -File .\run.ps1`, or double-click `run.bat`. |
 | PostgreSQL is not healthy | Run `docker compose logs postgres`, then `docker compose down` and `.\run.ps1`. Use `down -v` only if reset is intended. |

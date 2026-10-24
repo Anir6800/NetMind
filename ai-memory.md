@@ -13,6 +13,9 @@
 - Follow-up: a real launcher run started the full local stack, but topology/incidents returned 500 because `netmind_app` lacked privileges on tables created after the original audit migration. Migration `0007_grant_app_permissions` grants the existing restricted role DML/sequence access without widening the browser/controller boundary.
 - Follow-up: after permissions were fixed, the fresh database correctly returned 404 for `/networks/1/topology` because no demo network record was seeded. The launcher now idempotently seeds the fixture-backed network `id=1` and its devices after migrations.
 - Follow-up: user requested populated demo data. The local seed now creates 100 explicitly named SIMULATED incidents with source-labelled detection audit events; the UI requests up to 100 and labels this list as simulated demo data.
+- Follow-up: `run.ps1` now detects a running NetMind Compose PostgreSQL container on `5432` and reuses it instead of treating Docker's port forward as an unrelated conflict. Verified against `netmind-postgres-1` on 2026-10-24.
+- Follow-up: the launcher starts only Firebase Auth, so its health check no longer waits for the optional emulator UI on `4000`; the Auth emulator remains on `9099`.
+- Verification update: on 2026-10-24, `run.ps1 -NoBrowser` completed successfully after the Docker reuse/UI health-check fixes. API health returned `ok`; frontend returned HTTP `200`; Firebase Auth (`9099`) and controller (`8765`) listened; PostgreSQL contained 100 seeded SIMULATED demo incidents.
 
 ## NM-D1-S01 — Audit local Linux and network privileges
 

@@ -16,7 +16,7 @@ $frontendPort = 5173
 $ports = @(
     @{ Name = 'PostgreSQL'; Port = 5432 }, @{ Name = 'API'; Port = 8000 },
     @{ Name = 'Firebase Auth'; Port = 9099 },
-    @{ Name = 'Firebase Emulator UI'; Port = 4000 }, @{ Name = 'Controller'; Port = 8765 }
+    @{ Name = 'Controller'; Port = 8765 }
 )
 
 function Fail([string]$message) { throw "NetMind setup stopped: $message" }
@@ -28,9 +28,17 @@ function Get-PortProcess([int]$port) {
     if ($connection) { return Get-Process -Id $connection.OwningProcess -ErrorAction SilentlyContinue }
     return $null
 }
+function Test-NetMindPostgresRunning {
+    $container = (& docker compose ps -q postgres 2>$null | Select-Object -First 1).Trim()
+    return -not [string]::IsNullOrWhiteSpace($container)
+}
 function Assert-PortsFree {
     foreach ($item in $ports) {
         $owner = Get-PortProcess $item.Port
+        if ($item.Port -eq 5432 -and $owner -and (Test-NetMindPostgresRunning)) {
+            Write-Host 'NetMind PostgreSQL is already running; reusing the local Compose container.'
+            continue
+        }
         if ($owner) { Fail "port $($item.Port) ($($item.Name)) is in use by $($owner.ProcessName) (PID $($owner.Id)). Fix: close that process or run .\stop.ps1 if it is a previous NetMind run." }
     }
 }
@@ -125,12 +133,12 @@ try {
     Require-Command docker 'install Docker Desktop from https://www.docker.com/products/docker-desktop/.'
     Get-PythonVersion; Get-NodeVersion
     if ($Lab) { Fail '-Lab is not configured in this repository. This Windows host uses the clearly-labelled SIMULATED controller mode; do not claim Mininet support.' }
+    & docker version --format '{{.Server.Version}}' | Out-Null
+    if ($LASTEXITCODE -ne 0) { Fail 'Docker Desktop is installed but not running. Fix: start Docker Desktop and wait for "Engine running".' }
     if (Test-AlreadyRunning) { $saved = Get-Content -Raw $statePath | ConvertFrom-Json; $url = "http://127.0.0.1:$($saved.FrontendPort)"; Write-Host "NetMind is already running (idempotent start): $url"; if (-not $NoBrowser) { Start-Process $url }; exit 0 }
     if (Test-Path $statePath) { & (Join-Path $root 'stop.ps1') }
     Assert-PortsFree
     $frontendPort = Resolve-FrontendPort
-    & docker version --format '{{.Server.Version}}' | Out-Null
-    if ($LASTEXITCODE -ne 0) { Fail 'Docker Desktop is installed but not running. Fix: start Docker Desktop and wait for "Engine running".' }
     if ($Check) { Write-Host 'Preflight passed. No services were started. Mode: SIMULATED (Windows host).'; exit 0 }
     if ($Reset) {
         $answer = Read-Host 'Reset deletes local NetMind PostgreSQL demo data. Type RESET to continue'
@@ -161,7 +169,7 @@ try {
     $tracked = @()
     $tracked += Start-Tracked 'firebase' 'cmd.exe' @('/c', 'firebase emulators:start --only auth --project demo-netmind')
     Write-LauncherState $tracked
-    Wait-Port 9099 'Firebase Auth'; Wait-Port 4000 'Firebase Emulator UI'; Seed-DemoUsers $venvPython
+    Wait-Port 9099 'Firebase Auth'; Seed-DemoUsers $venvPython
     $tracked += Start-Tracked 'backend' $venvPython @('-m','uvicorn','app.main:app','--host','127.0.0.1','--port','8000','--app-dir','backend')
     Write-LauncherState $tracked
     Wait-Http 'http://127.0.0.1:8000/health' 'API'

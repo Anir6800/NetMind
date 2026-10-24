@@ -19,7 +19,7 @@ Use Git Bash or a Linux/WSL shell, keep Docker Desktop's Linux engine running, a
 | Launcher rejects the controller token | Set a new non-empty `NETMIND_CONTROLLER_TOKEN` in the launcher shell. Do not supply it as a command-line argument or commit it. |
 | Gemini diagnosis is offline | Confirm `GEMINI_API_KEY` exists only in the ignored root `.env`; invalid/unavailable keys intentionally produce read-only fallback and do not block the rest of the demo. |
 | NVIDIA audit is skipped | This is expected unless `NVIDIA_API_KEY` is exported in the shell running `scripts/check-netmind.sh`. |
-| Auth emulator cannot start | Confirm the Firebase CLI is installed and ports `9099` and `4000` are free, then restart the launcher. |
+| Auth emulator cannot start | Confirm the Firebase CLI is installed and port `9099` is free, then restart the launcher. |
 
 ## Restart and cleanup
 
