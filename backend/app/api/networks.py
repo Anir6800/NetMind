@@ -32,17 +32,21 @@ class NetworkDocument(BaseModel):
 
 
 class GenerateRequest(BaseModel):
-    name: str
-    category: str = "campus"
-    device_count: int = Field(default=50, ge=6, le=50)
+    name: str = Field(min_length=1, max_length=120)
+    category: str = Field(default="campus", max_length=40)
+    device_count: int = Field(default=50, ge=2, le=50)
     protocol: Literal["static", "rip", "ospf"] = "ospf"
-    prompt: str = ""
+    prompt: str = Field(default="", max_length=2000)
+    form: dict | None = None
 
 
 class GeneratedNetwork(BaseModel):
     network: NetworkResponse
     topology: Topology
-    source: Literal["NVIDIA", "SIMULATED_AI_PLANNER"]
+    source: Literal["NVIDIA", "LOCAL_RULES", "FORM", "TEMPLATE"]
+    answered_by: str
+    notes: list[str]
+    summary: str
 
 
 @router.get("", response_model=list[NetworkResponse])
@@ -57,8 +61,11 @@ def create_network(request: NetworkDocument, session: Annotated[Session, Depends
 
 @router.post("/generate", response_model=GeneratedNetwork, status_code=201)
 def generate_network(request: GenerateRequest, session: Annotated[Session, Depends(get_session)]) -> GeneratedNetwork:
-    network, topology, source = NetworksService(session).generate(request.name, request.device_count, request.category, request.protocol, request.prompt)
-    return GeneratedNetwork(network=network, topology=topology, source=source)
+    try:
+        network, topology, spec, answer = NetworksService(session).generate(request.name, request.device_count, request.category, request.protocol, request.prompt, request.form)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+    return GeneratedNetwork(network=network, topology=topology, source=answer.source, answered_by=answer.answered_by, notes=answer.notes, summary=spec.summary)
 
 
 @router.put("/{network_id}", response_model=NetworkResponse)

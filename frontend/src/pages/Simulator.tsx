@@ -21,6 +21,8 @@ import { ImpactCard, Legend, LinkInspector, NodeInspector, Palette } from "../fe
 import { set as setPlayback, usePlayback } from "../features/sim/playback";
 import { PacketInspector, PacketList, PlayerControls, RunLog } from "../features/sim/player";
 import { simulate } from "../sim/des";
+import { AiPanel, describeSuggestion } from "../features/sim/ai";
+import { applySuggestion, connect as connectDevices, freshSubnet, type Suggestion } from "../sim/edit";
 import { ConvergencePanel, LearnedTables, RouteTable, TraceroutePanel } from "../features/sim/tables";
 import {
   DEVICE_LAYER,
@@ -58,29 +60,6 @@ const SHORT: Record<string, string> = {
 const MAX_DEVICES = 50;
 const clock = () => new Date().toLocaleTimeString([], { hour12: false });
 
-function freshSubnet(topology: Topology) {
-  const used = new Set(
-    topology.nodes.flatMap((node) => node.interfaces.map((item) => item.address.split(".").slice(0, 3).join("."))),
-  );
-  for (let third = 1; third < 255; third += 1) if (!used.has(`10.20.${third}`)) return `10.20.${third}`;
-  return "10.21.0";
-}
-
-// Uses the first interface no link is attached to, or adds one.
-function freeInterface(topology: Topology, node: TopologyNode): { node: TopologyNode; interfaceId: string } {
-  const taken = new Set(
-    topology.links.flatMap((link) => [
-      link.a.node_id === node.id ? link.a.interface_id : "",
-      link.b.node_id === node.id ? link.b.interface_id : "",
-    ]),
-  );
-  const free = node.interfaces.find((item) => !taken.has(item.id));
-  if (free) return { node, interfaceId: free.id };
-  const interfaceId = `port-${node.interfaces.length + 1}`;
-  const address = isL3(node) ? `${freshSubnet(topology)}.1/24` : `${node.interfaces[0].address.split("/")[0].split(".").slice(0, 3).join(".")}.${200 + node.interfaces.length}/24`;
-  return { node: { ...node, interfaces: [...node.interfaces, { id: interfaceId, address }] }, interfaceId };
-}
-
 export function Simulator() {
   return (
     <ReactFlowProvider>
@@ -104,9 +83,9 @@ function Studio() {
   const [selection, setSelection] = useState<{ nodes: string[]; edges: string[] }>({ nodes: [], edges: [] });
   const [focus, setFocus] = useState<{ kind: "node" | "link"; id: string; rename?: boolean } | null>(null);
   const [menu, setMenu] = useState<Menu | null>(null);
-  const [impact, setImpact] = useState<{ title: string; impact: Impact; pending?: Fault } | null>(null);
+  const [impact, setImpact] = useState<{ title: string; impact: Impact; apply?: { label: string; run: () => void } } | null>(null);
   const [previousTables, setPreviousTables] = useState<Tables | null>(null);
-  const [change, setChange] = useState<{ title: string; before: Topology; after: Topology } | null>(null);
+  const [change, setChange] = useState<{ title: string; before: Topology; after: Topology; target?: string } | null>(null);
   const [logs, setLogs] = useState<LogEntry[]>([]);
   const [faultKind, setFaultKind] = useState<FaultKind>("link-down");
   const [faultTarget, setFaultTarget] = useState("");
@@ -235,7 +214,7 @@ function Studio() {
     const started = performance.now();
     const result = compareImpact(topology, next, { ...primary, protocol });
     setPreviousTables(tables);
-    setChange({ title, before: topology, after: next });
+    setChange({ title, before: topology, after: next, target: fault.target });
     commit(next);
     setImpact({ title, impact: result });
     log(
@@ -277,24 +256,35 @@ function Studio() {
   }
 
   function connect(source: string, target: string) {
-    if (!topology || source === target) return;
-    const a = freeInterface(topology, byId.get(source)!);
-    const withA = { ...topology, nodes: topology.nodes.map((node) => (node.id === source ? a.node : node)) };
-    const b = freeInterface(withA, byId.get(target)!);
-    let id = `link-${source}-${target}`;
-    for (let suffix = 2; topology.links.some((link) => link.id === id); suffix += 1) id = `link-${source}-${target}-${suffix}`;
-    const link: TopologyLink = {
-      id,
-      a: { node_id: source, interface_id: a.interfaceId },
-      b: { node_id: target, interface_id: b.interfaceId },
-      capacity_mbps: 100,
-      delay_ms: 1,
-      loss_pct: 0,
-      jitter_ms: 0,
-      state: "up",
-    };
-    commit({ ...withA, nodes: withA.nodes.map((node) => (node.id === target ? b.node : node)), links: [...topology.links, link] });
-    log("EDIT", `connected ${label(source)} ${a.interfaceId} ↔ ${label(target)} ${b.interfaceId} (100 Mbps, 1 ms)`);
+    if (!topology) return;
+    const result = connectDevices(topology, source, target);
+    if (!result) return;
+    commit(result.topology);
+    log("EDIT", `connected ${label(source)} ${result.link.a.interface_id} ↔ ${label(target)} ${result.link.b.interface_id} (100 Mbps, 1 ms)`);
+  }
+
+  // AI suggestions are previewed with the same calculator and only applied on confirmation.
+  function previewSuggestion(item: Suggestion) {
+    if (!topology || !primary) return;
+    const next = applySuggestion(topology, protocol, item);
+    const title = describeSuggestion(item, label);
+    setImpact({
+      title: `Suggestion: ${title}`,
+      impact: compareImpact(topology, next.topology, { ...primary, protocol }, next.protocol),
+      apply: {
+        label: "Apply this suggestion",
+        run: () => {
+          const result = compareImpact(topology, next.topology, { ...primary, protocol }, next.protocol);
+          setPreviousTables(tables);
+          setChange({ title, before: topology, after: next.topology });
+          commit(next.topology);
+          setProtocol(next.protocol);
+          setImpact({ title: `Applied: ${title}`, impact: result });
+          log("LIVE", `applied suggestion: ${title} → ${result.after.reachable ? `${result.after.metrics.total.toFixed(3)} ms one-way` : "still unreachable"}`);
+        },
+      },
+    });
+    log("PREVIEW", `suggestion previewed: ${title} (nothing changed)`);
   }
 
   function remove(nodeIds: string[], linkIds: string[]) {
@@ -425,6 +415,7 @@ function Studio() {
           SIMULATED
         </span>
         {searchParams.get("planner") && <span className="planner-badge">Generated by {searchParams.get("planner")}</span>}
+        {searchParams.get("notes") && <span className="planner-notes">{searchParams.get("notes")}</span>}
         <form
           className="search-box"
           role="search"
@@ -525,14 +516,7 @@ function Studio() {
               impact={impact.impact}
               label={label}
               onClose={() => setImpact(null)}
-              onApply={
-                impact.pending
-                  ? () => {
-                      const pending = impact.pending!;
-                      liveChange(pending, `${pending.kind} on ${label(pending.target)}`);
-                    }
-                  : undefined
-              }
+              apply={impact.apply}
             />
           )}
         </main>
@@ -706,7 +690,7 @@ function Studio() {
                   disabled={!primary || !faultTarget}
                   onClick={() => {
                     const fault = { kind: faultKind, target: faultTarget };
-                    setImpact({ title: `Preview: ${faultKind} on ${label(faultTarget)}`, impact: compareImpact(topology, applyFault(topology, fault), { ...primary!, protocol }), pending: fault });
+                    setImpact({ title: `Preview: ${faultKind} on ${label(faultTarget)}`, impact: compareImpact(topology, applyFault(topology, fault), { ...primary!, protocol }), apply: { label: "Apply this fault to the live network", run: () => liveChange(fault, `${fault.kind} on ${label(fault.target)}`) } });
                     log("PREVIEW", `${faultKind} on ${faultTarget} previewed (nothing changed)`);
                   }}
                 >
@@ -802,10 +786,16 @@ function Studio() {
             </div>
           )}
           {panel === "ai" && (
-            <div className="ai-panel">
-              <p className="eyebrow">LAB ASSISTANT</p>
-              <p>AI explain and suggest arrive in a later step.</p>
-            </div>
+            <AiPanel
+              topology={topology}
+              protocol={protocol}
+              flow={primary}
+              impact={impact}
+              change={change}
+              reachableNow={primaryResult?.reachable ?? false}
+              label={label}
+              onPreview={previewSuggestion}
+            />
           )}
         </aside>
       </div>

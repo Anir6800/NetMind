@@ -58,21 +58,53 @@ export async function getNetworks(): Promise<NetworkSummary[]> {
   return response.json() as Promise<NetworkSummary[]>;
 }
 
-export async function generateNetwork(input: {
+export type Answered = { source: "NVIDIA" | "LOCAL_RULES" | "FORM" | "TEMPLATE"; answered_by: string; notes: string[] };
+
+async function post<T>(url: string, body: unknown, failure: string): Promise<T> {
+  const response = await fetch(url, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) });
+  if (!response.ok) {
+    const detail = await response.json().catch(() => null);
+    throw new Error(typeof detail?.detail === "string" ? detail.detail : failure);
+  }
+  return response.json() as Promise<T>;
+}
+
+export type NetworkForm = {
+  protocol: string;
+  style: string;
+  routers: number;
+  firewalls: number;
+  switches: number;
+  access_points: number;
+  hubs: number;
+  repeaters: number;
+  servers: number;
+  hosts: number;
+  redundancy: boolean;
+};
+
+export function generateNetwork(input: {
   name: string;
   category: string;
   device_count: number;
   protocol: string;
   prompt?: string;
-}): Promise<{ network: NetworkSummary; topology: Topology; source: string }> {
-  const response = await fetch("/networks/generate", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(input),
-  });
-  if (!response.ok) throw new Error("Network generation failed");
+  form?: NetworkForm;
+}): Promise<{ network: NetworkSummary; topology: Topology; summary: string } & Answered> {
+  return post("/networks/generate", input, "Network generation failed");
+}
+
+export async function getAiStatus(): Promise<{ mode: "LIVE" | "LOCAL_RULES"; answered_by: string; reason: string }> {
+  const response = await fetch("/ai/status");
+  if (!response.ok) throw new Error("AI status unavailable");
   return response.json();
 }
+
+export type Explanation = Answered & { root_cause: string; affected_layers: string[]; explanation: string; timing: string };
+export const explainChange = (facts: unknown) => post<Explanation>("/ai/explain", facts, "Explanation failed");
+
+export type SuggestionList = Answered & { suggestions: import("../sim/edit").Suggestion[] };
+export const suggestChanges = (request: unknown) => post<SuggestionList>("/ai/suggest", request, "Suggestions failed");
 
 export async function createBlankNetwork(
   name: string,

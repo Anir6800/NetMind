@@ -31,20 +31,20 @@ export function ImpactCard({
   impact,
   label,
   onClose,
-  onApply,
+  apply,
 }: {
   title: string;
   impact: Impact;
   label: (id: string) => string;
   onClose: () => void;
-  onApply?: () => void;
+  apply?: { label: string; run: () => void };
 }) {
   const hops = (result: FlowResult) => result.forward.l3Hops.map(label).join(" → ") || "—";
   return (
     <section className="impact-card" aria-live="polite" aria-label="Before and after impact">
       <header>
         <div>
-          <p className="eyebrow">{onApply ? "PREVIEW · NOTHING CHANGED YET" : "LIVE CHANGE APPLIED"}</p>
+          <p className="eyebrow">{apply ? "PREVIEW · NOTHING CHANGED YET" : "LIVE CHANGE APPLIED"}</p>
           <h2>{title}</h2>
         </div>
         <button className="ghost-button" onClick={onClose} aria-label="Close impact panel">
@@ -121,9 +121,9 @@ export function ImpactCard({
           </details>
         )}
       </div>
-      {onApply && (
-        <button className="danger-solid" onClick={onApply}>
-          Apply this fault to the live network
+      {apply && (
+        <button className="danger-solid" onClick={apply.run}>
+          {apply.label}
         </button>
       )}
       <p className="sim-note">SIMULATED educational model — not a physical measurement.</p>

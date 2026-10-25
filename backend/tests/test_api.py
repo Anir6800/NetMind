@@ -47,7 +47,8 @@ def test_generates_and_persists_fifty_device_student_topology(monkeypatch) -> No
         response = api.post("/networks/generate", json={"name": "Campus lab", "category": "campus", "device_count": 50, "protocol": "ospf", "prompt": "Create 50 devices"})
         assert response.status_code == 201
         generated = response.json()
-        assert generated["source"] == "SIMULATED_AI_PLANNER"
+        assert generated["source"] == "LOCAL_RULES"
+        assert generated["answered_by"] == "Local rule-based planner (not AI)"
         assert len(generated["topology"]["nodes"]) == 50
         network_id = generated["network"]["id"]
         assert len(api.get(f"/networks/{network_id}/topology").json()["topology"]["nodes"]) == 50

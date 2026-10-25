@@ -489,11 +489,11 @@ export function reachability(topology: Topology, tables: Tables, src: string) {
   );
 }
 
-export function compareImpact(before: Topology, after: Topology, flow: Flow): Impact {
+export function compareImpact(before: Topology, after: Topology, flow: Flow, protocolAfter: Protocol = flow.protocol): Impact {
   const tablesBefore = computeTables(before, flow.protocol);
-  const tablesAfter = computeTables(after, flow.protocol);
+  const tablesAfter = computeTables(after, protocolAfter);
   const beforeResult = analyzeFlow(before, flow, tablesBefore);
-  const afterResult = analyzeFlow(after, flow, tablesAfter);
+  const afterResult = analyzeFlow(after, { ...flow, protocol: protocolAfter }, tablesAfter);
   const reachBefore = reachability(before, tablesBefore, flow.src);
   const reachAfter = reachability(after, tablesAfter, flow.src);
   const changes = [...reachBefore]

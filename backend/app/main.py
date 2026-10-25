@@ -2,13 +2,14 @@ from typing import Annotated
 
 from fastapi import Depends, FastAPI
 
-from app.api import audit, copilot, events, incidents, networks, recovery, telemetry
+from app.api import ai, audit, copilot, events, incidents, networks, recovery, telemetry
 from app.core.auth import verify_token
 from app.core.config import get_settings
 
 settings = get_settings()
 app = FastAPI(title=settings.app_name)
 app.include_router(networks.router)
+app.include_router(ai.router)
 app.include_router(incidents.router)
 app.include_router(audit.router)
 app.include_router(copilot.router)

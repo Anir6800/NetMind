@@ -1,14 +1,14 @@
 import json
-import re
 from datetime import UTC, datetime
 from pathlib import Path
 
 from sqlalchemy.orm import Session
 
-from app.core.config import get_settings
-from app.integrations.nvidia_client import NvidiaClient
+from app.integrations.nvidia_client import get_ai_client
 from app.repositories.networks import NetworksRepository
 from app.schemas.network import Topology
+from app.services.assistant import plan_network
+from app.services.topology_builder import build_topology, validate_lab
 
 
 class NetworksService:
@@ -51,41 +51,11 @@ class NetworksService:
         self.repository.session.commit()
         return True
 
-    def generate(self, name: str, device_count: int, category: str, protocol: str, prompt: str = ""):
-        plan = NvidiaClient(get_settings()).plan_network(prompt, {"device_count": device_count, "category": category, "protocol": protocol})
-        requested = re.search(r"\b(\d{1,2})\s*(?:devices?|nodes?)\b", prompt.lower())
-        count = plan.device_count if plan else min(50, max(6, int(requested.group(1)) if requested else device_count))
-        topology = generated_topology(count, plan.category if plan else category, plan.protocol if plan else protocol)
-        return self.create(name, topology), topology, "NVIDIA" if plan else "SIMULATED_AI_PLANNER"
-
-
-def generated_topology(device_count: int, category: str, protocol: str) -> Topology:
-    types = ["router", "firewall", "switch", "switch"]
-    pool = ["host", "server", "access-point", "hub", "repeater"] if category in {"campus", "office", "home", "wireless-mesh"} else ["server", "host", "switch", "router", "firewall"]
-    types.extend(pool[index % len(pool)] for index in range(device_count - len(types)))
-    nodes = []
-    for index, kind in enumerate(types[:device_count]):
-        node_id = f"{kind}-{index + 1}"
-        nodes.append({"id": node_id, "type": kind, "interfaces": [{"id": f"port-{port + 1}", "address": f"10.{index // 250}.{index % 250}.{port + 1}/24"} for port in range(4)], "x": (index % 10) * 180, "y": (index // 10) * 130, "processing_delay_ms": round(0.1 + (index % 5) * 0.15, 2), "routing_protocol": protocol})
-    links = []
-    for index in range(1, device_count):
-        parent = (index - 1) // 3
-        child_port = 1
-        parent_port = ((index - 1) % 3) + 2
-        links.append({"id": f"link-{parent + 1}-{index + 1}", "a": {"node_id": nodes[parent]["id"], "interface_id": f"port-{parent_port}"}, "b": {"node_id": nodes[index]["id"], "interface_id": f"port-{child_port}"}, "capacity_mbps": 1000 if category in {"data-center", "isp-backbone"} else 100, "delay_ms": 1 + (index % 7), "loss_pct": 0, "jitter_ms": round((index % 4) * 0.2, 1), "state": "up"})
-    hosts = [node["id"] for node in nodes if node["type"] in {"host", "server"}]
-    source, destination = hosts[0], hosts[-1]
-    parent_by_node = {nodes[index]["id"]: nodes[(index - 1) // 3]["id"] for index in range(1, device_count)}
-    link_by_pair = {frozenset((link["a"]["node_id"], link["b"]["node_id"])): link["id"] for link in links}
-    def ancestors(node_id: str) -> list[str]:
-        result = [node_id]
-        while node_id in parent_by_node:
-            node_id = parent_by_node[node_id]
-            result.append(node_id)
-        return result
-    left, right = ancestors(source), ancestors(destination)
-    common = next(node_id for node_id in left if node_id in right)
-    path_nodes = left[:left.index(common) + 1] + list(reversed(right[:right.index(common)]))
-    path_links = [link_by_pair[frozenset((path_nodes[index], path_nodes[index + 1]))] for index in range(len(path_nodes) - 1)]
-    links.append({"id": "link-backup", "a": {"node_id": source, "interface_id": "port-4"}, "b": {"node_id": destination, "interface_id": "port-4"}, "capacity_mbps": 10, "delay_ms": 50, "loss_pct": 0.5, "jitter_ms": 2, "state": "up"})
-    return Topology.model_validate({"version": "v1", "addressing_plan": f"10.0.0.0/8 · {category}", "nodes": nodes, "links": links, "expected_baseline_paths": [{"source_host_id": source, "destination_host_id": destination, "link_ids": path_links}]})
+    def generate(self, name: str, device_count: int, category: str, protocol: str, prompt: str = "", form: dict | None = None):
+        defaults = {"device_count": device_count, "protocol": protocol, "category": category}
+        spec, answer = plan_network(get_ai_client(), prompt, form, defaults)
+        topology = build_topology(spec, f"{category} · {spec.style} · {spec.protocol.upper()}")
+        problems = validate_lab(topology)
+        if problems:
+            raise ValueError("Generated network rejected: " + "; ".join(problems))
+        return self.create(name, topology), topology, spec, answer

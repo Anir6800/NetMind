@@ -6,7 +6,10 @@ import {
   deleteNetwork,
   generateNetwork,
   getNetworks,
+  type NetworkForm,
 } from "../lib/api";
+
+const FORM_FIELDS = ["routers", "firewalls", "switches", "access_points", "hubs", "repeaters", "servers", "hosts"] as const;
 
 const templates = [
   ["campus", "College campus"],
@@ -40,13 +43,18 @@ export function Dashboard() {
   const [protocol, setProtocol] = useState("ospf");
   const [count, setCount] = useState(50);
   const [prompt, setPrompt] = useState(
-    "Create a three-floor campus network with redundant routers",
+    "Three-floor college network with 45 devices, OSPF, one firewall",
   );
+  const [mode, setMode] = useState<"prompt" | "form">("prompt");
+  const [form, setForm] = useState<NetworkForm>({ protocol: "ospf", style: "hierarchical", routers: 3, firewalls: 1, switches: 3, access_points: 1, hubs: 0, repeaters: 0, servers: 2, hosts: 20, redundancy: true });
+  const formTotal = FORM_FIELDS.reduce((sum, key) => sum + form[key], 0);
   const generate = useMutation({
     mutationFn: generateNetwork,
-    onSuccess: ({ network, source }) => {
+    onSuccess: ({ network, answered_by, notes }) => {
       queryClient.invalidateQueries({ queryKey: ["networks"] });
-      navigate(`/simulator/${network.id}?planner=${source}`);
+      const params = new URLSearchParams({ planner: answered_by });
+      if (notes.length) params.set("notes", notes.join(" · "));
+      navigate(`/simulator/${network.id}?${params}`);
     },
   });
   const createBlank = useMutation({
@@ -62,7 +70,7 @@ export function Dashboard() {
   });
   function submit(event: FormEvent) {
     event.preventDefault();
-    generate.mutate({ name, category, device_count: count, protocol, prompt });
+    generate.mutate(mode === "form" ? { name, category, device_count: formTotal, protocol: form.protocol, form } : { name, category, device_count: count, protocol, prompt });
   }
   return (
     <div className="dashboard-page">
@@ -102,55 +110,87 @@ export function Dashboard() {
             <div className="form-divider">
               <span>OR GENERATE</span>
             </div>
-            <div className="form-row">
-              <label>
-                Type
-                <select
-                  value={category}
-                  onChange={(event) => setCategory(event.target.value)}
-                >
-                  {templates.map(([id, label]) => (
-                    <option value={id} key={id}>
-                      {label}
-                    </option>
-                  ))}
-                </select>
-              </label>
-              <label>
-                Routing
-                <select
-                  value={protocol}
-                  onChange={(event) => setProtocol(event.target.value)}
-                >
-                  <option value="static">Static</option>
-                  <option value="rip">RIP</option>
-                  <option value="ospf">OSPF</option>
-                </select>
-              </label>
-              <label>
-                Devices
-                <input
-                  type="number"
-                  min="6"
-                  max="50"
-                  value={count}
-                  onChange={(event) => setCount(Number(event.target.value))}
-                />
-              </label>
+            <div className="segmented" role="tablist" aria-label="How to generate">
+              <button type="button" role="tab" aria-selected={mode === "prompt"} className={mode === "prompt" ? "active" : ""} onClick={() => setMode("prompt")}>
+                Describe it (AI)
+              </button>
+              <button type="button" role="tab" aria-selected={mode === "form"} className={mode === "form" ? "active" : ""} onClick={() => setMode("form")}>
+                Detailed form
+              </button>
             </div>
-            <label>
-              AI prompt
-              <textarea
-                value={prompt}
-                onChange={(event) => setPrompt(event.target.value)}
-              />
-            </label>
+            {mode === "prompt" ? (
+              <>
+                <label>
+                  Plain-English request
+                  <textarea value={prompt} maxLength={2000} onChange={(event) => setPrompt(event.target.value)} />
+                </label>
+                <div className="form-row">
+                  <label>
+                    Lab type
+                    <select value={category} onChange={(event) => setCategory(event.target.value)}>
+                      {templates.map(([id, label]) => (
+                        <option value={id} key={id}>
+                          {label}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <label>
+                    Default routing
+                    <select value={protocol} onChange={(event) => setProtocol(event.target.value)}>
+                      <option value="static">Static</option>
+                      <option value="rip">RIP</option>
+                      <option value="ospf">OSPF</option>
+                    </select>
+                  </label>
+                  <label>
+                    Default devices
+                    <input type="number" min="2" max="50" value={count} onChange={(event) => setCount(Number(event.target.value))} />
+                  </label>
+                </div>
+                <p className="hint">The AI only proposes device counts and a layout as JSON; the server validates them (max 50 devices, unique IPs, connected) and builds the network. If AI is unavailable a local rule-based planner is used and labelled.</p>
+              </>
+            ) : (
+              <>
+                <div className="form-grid">
+                  {FORM_FIELDS.map((key) => (
+                    <label key={key}>
+                      {key.replace("_", " ")}
+                      <input type="number" min={0} max={48} value={form[key]} onChange={(event) => setForm({ ...form, [key]: Math.max(0, Number(event.target.value)) })} />
+                    </label>
+                  ))}
+                  <label>
+                    Routing
+                    <select value={form.protocol} onChange={(event) => setForm({ ...form, protocol: event.target.value })}>
+                      <option value="static">Static</option>
+                      <option value="rip">RIP</option>
+                      <option value="ospf">OSPF</option>
+                    </select>
+                  </label>
+                  <label>
+                    Layout
+                    <select value={form.style} onChange={(event) => setForm({ ...form, style: event.target.value })}>
+                      {["hierarchical", "ring", "mesh", "star", "leaf-spine", "bus"].map((style) => (
+                        <option key={style}>{style}</option>
+                      ))}
+                    </select>
+                  </label>
+                </div>
+                <label className="check">
+                  <input type="checkbox" checked={form.redundancy} onChange={(event) => setForm({ ...form, redundancy: event.target.checked })} />
+                  Redundant links (backup paths)
+                </label>
+                <p className={formTotal > 50 ? "form-error" : "hint"}>
+                  {formTotal}/50 devices{formTotal > 50 ? " — the server will reduce this to 50" : ""}. The form never calls AI.
+                </p>
+              </>
+            )}
             <button
               className="primary-button"
               disabled={generate.isPending}
               type="submit"
             >
-              {generate.isPending ? "Building topology…" : "Generate and open"}
+              {generate.isPending ? "Building topology…" : mode === "form" ? "Build from form and open" : "Generate with AI and open"}
             </button>
             {(generate.isError || createBlank.isError) && (
               <p role="alert" className="form-error">

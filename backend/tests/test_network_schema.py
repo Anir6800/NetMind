@@ -5,7 +5,7 @@ import pytest
 from pydantic import ValidationError
 
 from app.schemas.network import Topology
-from app.services.networks import generated_topology
+from app.services.topology_builder import NetworkSpec, build_topology, validate_lab
 
 
 def demo() -> dict:
@@ -39,10 +39,23 @@ def test_supports_student_network_devices_and_timing() -> None:
     assert parsed.links[0].loss_pct == 1.5
 
 
-def test_generated_lab_has_fifty_devices_and_a_backup_path() -> None:
-    topology = generated_topology(50, "campus", "ospf")
+def test_builder_makes_valid_labs_for_every_style_and_size() -> None:
+    for style in ("hierarchical", "ring", "mesh", "star", "leaf-spine", "bus"):
+        for spec in (
+            NetworkSpec(style=style),
+            NetworkSpec(style=style, routers=4, firewalls=1, switches=5, access_points=2, hubs=1, repeaters=1, servers=4, hosts=32, redundancy=True),
+            NetworkSpec(style=style, routers=0, switches=2, servers=0, hosts=6),
+            NetworkSpec(style=style, routers=2, switches=0, servers=1, hosts=4),
+        ):
+            topology = build_topology(spec)
+            assert len(topology.nodes) == spec.total
+            assert validate_lab(topology) == [], (style, spec)
 
-    assert len(topology.nodes) == 50
-    assert topology.links[-1].id == "link-backup"
-    assert topology.links[-1].delay_ms == 50
-    assert "link-backup" not in topology.expected_baseline_paths[0].link_ids
+
+def test_validator_reports_disconnected_and_duplicate_ip() -> None:
+    topology = build_topology(NetworkSpec(routers=1, switches=1, servers=1, hosts=2))
+    topology.links.pop()
+    topology.nodes[-1].interfaces[0].address = topology.nodes[-2].interfaces[0].address
+    problems = validate_lab(topology)
+    assert any("not connected" in problem for problem in problems)
+    assert any("is used by both" in problem for problem in problems)

@@ -6,12 +6,13 @@ import logging
 import time
 from collections import deque
 from collections.abc import Callable
+from functools import lru_cache
 from threading import Lock
 
 from pydantic import BaseModel, Field
 from tenacity import Retrying, retry_if_exception_type, stop_after_attempt, wait_fixed
 
-from app.core.config import Settings
+from app.core.config import Settings, get_settings
 
 logger = logging.getLogger(__name__)
 
@@ -31,10 +32,8 @@ class ProviderDiagnosis(BaseModel):
     confidence: float = Field(ge=0, le=1)
 
 
-class NetworkPlan(BaseModel):
-    device_count: int = Field(ge=6, le=50)
-    category: str
-    protocol: str = Field(pattern=r"^(static|rip|ospf)$")
+class AiUnavailable(RuntimeError):
+    """The live provider is not configured, is failing, or its circuit is open."""
 
 
 class RateLimiter:
@@ -55,9 +54,16 @@ class RateLimiter:
 
 
 class NvidiaClient:
-    def __init__(self, settings: Settings, requester: Callable[[dict, str], Diagnosis] | None = None) -> None:
+    def __init__(
+        self,
+        settings: Settings,
+        requester: Callable[[dict, str], Diagnosis] | None = None,
+        text_requester: Callable[[str, str, int, float], str] | None = None,
+    ) -> None:
         self.settings = settings
         self.requester = requester
+        self.text_requester = text_requester
+        self.last_model: str | None = None
         self.failures = 0
         self.circuit_open = False
         self.rate_limiter = RateLimiter(settings.nvidia_rate_limit_rpm)
@@ -80,26 +86,53 @@ class NvidiaClient:
             self.circuit_open = self.failures >= self.settings.nvidia_failure_threshold
             return self._fixture("request_failed", started)
 
-    def plan_network(self, prompt: str, defaults: dict) -> NetworkPlan | None:
-        if self.settings.nvidia_fixture_mode or not self.settings.nvidia_api_key or not prompt.strip():
-            return None
+    def mode(self) -> tuple[str, str]:
+        """LIVE when a key is configured, fixture mode is off and the circuit is closed."""
+        if self.settings.nvidia_fixture_mode:
+            return "LOCAL_RULES", "NETMIND_NVIDIA_FIXTURE_MODE=true"
+        if not self.settings.nvidia_api_key:
+            return "LOCAL_RULES", "no NVIDIA_API_KEY configured"
+        if self.circuit_open:
+            return "LOCAL_RULES", f"circuit open after {self.failures} failed calls"
+        return "LIVE", "key configured"
+
+    def complete_json(self, instruction: str, *, max_tokens: int = 400, timeout_s: float | None = None) -> str:
+        """One JSON completion with a retry budget of 3 attempts across primary and fallback models.
+
+        Raises AiUnavailable when not LIVE or every attempt fails; the caller then uses its
+        labelled local fallback. Model output is returned as text and must be validated by the caller.
+        """
+        mode, reason = self.mode()
+        if mode != "LIVE":
+            raise AiUnavailable(reason)
+        started = time.monotonic()
+        attempts = 0
+        last_error: Exception | None = None
+        for model in (self.settings.nvidia_model, self.settings.nvidia_fallback_model):
+            for _ in range(2):
+                if attempts >= 3:
+                    break
+                attempts += 1
+                try:
+                    text = (self.text_requester or self._complete)(instruction, model, max_tokens, timeout_s or self.settings.nvidia_timeout_s)
+                    self.failures = 0
+                    self.last_model = model
+                    self._log("nvidia", started, "ok")
+                    return text
+                except Exception as error:  # noqa: BLE001 - any provider failure falls back to local rules.
+                    last_error = error
+        self.failures += 1
+        self.circuit_open = self.failures >= self.settings.nvidia_failure_threshold
+        self._log("offline_fixture", started, "request_failed")
+        raise AiUnavailable(f"NVIDIA request failed ({type(last_error).__name__})") from last_error
+
+    def _complete(self, instruction: str, model: str, max_tokens: int, timeout_s: float) -> str:
         from openai import OpenAI
 
         self.rate_limiter.acquire()
-        client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=self.settings.nvidia_api_key, timeout=self.settings.nvidia_timeout_s)
-        instruction = (
-            "Return only JSON with device_count (6-50), category, and protocol "
-            "(static, rip, or ospf). Interpret this student network request: "
-            + json.dumps(prompt)
-            + ". Defaults: "
-            + json.dumps(defaults, sort_keys=True)
-        )
-        try:
-            completion = client.chat.completions.create(model=self.settings.nvidia_model, messages=[{"role": "user", "content": instruction}], temperature=0.1, max_tokens=120, extra_body={"chat_template_kwargs": {"enable_thinking": False}})
-            content = (completion.choices[0].message.content or "{}").strip().removeprefix("```json").removesuffix("```").strip()
-            return NetworkPlan.model_validate_json(content)
-        except Exception:  # noqa: BLE001 - generation always has a labelled local fallback.
-            return None
+        client = OpenAI(base_url="https://integrate.api.nvidia.com/v1", api_key=self.settings.nvidia_api_key, timeout=timeout_s, max_retries=0)
+        completion = client.chat.completions.create(model=model, messages=[{"role": "user", "content": instruction}], temperature=0.1, max_tokens=max_tokens, extra_body={"chat_template_kwargs": {"enable_thinking": False}})
+        return completion.choices[0].message.content or ""
 
     def _diagnose_with_models(self, evidence: dict) -> Diagnosis:
         last_error: Exception | None = None
@@ -140,3 +173,9 @@ class NvidiaClient:
 
 def canonical_prompt(evidence: dict) -> str:
     return "Return JSON matching summary, probable_cause, and confidence (0 to 1). Diagnose using only: " + json.dumps(evidence, sort_keys=True, separators=(",", ":"))
+
+
+@lru_cache
+def get_ai_client() -> NvidiaClient:
+    """Process-wide client so the circuit breaker and rate limiter persist between requests."""
+    return NvidiaClient(get_settings())

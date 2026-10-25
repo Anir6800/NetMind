@@ -273,3 +273,23 @@ h1, h2, h3 { margin: 0; }
 .seed-field { width: 5.5rem; }
 .route-table caption { text-align: left; padding-bottom: .3rem; }
 .route-table small { color: var(--nm-text-muted); }
+
+/* ---------- AI ---------- */
+.form-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: .6rem; }
+.form-grid label { text-transform: capitalize; }
+.ai-panel section { display: grid; gap: .5rem; padding-top: .6rem; border-top: 1px solid var(--nm-border); }
+.ai-panel h3 { font-size: .95rem; }
+.ai-status { display: grid; gap: .2rem; padding: .6rem .75rem; border-radius: .7rem; font-size: .8rem; border: 1px solid var(--nm-border-strong); }
+.ai-status--live { border-color: color-mix(in srgb, var(--nm-success) 60%, var(--nm-border)); }
+.ai-status--local { border-color: color-mix(in srgb, var(--nm-warning) 60%, var(--nm-border)); }
+.answer-source { display: grid; gap: .15rem; padding: .45rem .6rem; border-radius: .5rem; font-size: .76rem; }
+.answer-source small { color: var(--nm-text-muted); }
+.answer-source--live { background: color-mix(in srgb, var(--nm-success) 12%, transparent); }
+.answer-source--local { background: color-mix(in srgb, var(--nm-warning) 12%, transparent); }
+.ai-answer { display: grid; gap: .5rem; font-size: .82rem; line-height: 1.55; }
+.ai-answer p, .ai-answer ul { margin: 0; }
+.suggestion-list { display: grid; gap: .6rem; margin: 0; padding-left: 1.1rem; }
+.suggestion-list li { display: grid; gap: .3rem; }
+.suggestion-list small { color: var(--nm-text-muted); }
+.planner-notes { color: var(--nm-text-muted); font-size: .7rem; max-width: 26rem; }
+@media (max-width: 800px) { .form-grid { grid-template-columns: 1fr 1fr; } }

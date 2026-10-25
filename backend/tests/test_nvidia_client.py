@@ -18,10 +18,10 @@ def test_fixture_mode_is_deterministic() -> None:
     assert first.model_dump(exclude={"latency_ms"}) == second.model_dump(exclude={"latency_ms"})
 
 
-def test_network_planner_uses_labelled_local_fallback_in_fixture_mode() -> None:
-    client = NvidiaClient(Settings(nvidia_api_key="secret", nvidia_fixture_mode=True))
-
-    assert client.plan_network("build a campus network", {"device_count": 12}) is None
+def test_mode_is_explicit() -> None:
+    assert NvidiaClient(Settings(nvidia_api_key="secret", nvidia_fixture_mode=True)).mode()[0] == "LOCAL_RULES"
+    assert NvidiaClient(Settings(nvidia_api_key=None, nvidia_fixture_mode=False)).mode() == ("LOCAL_RULES", "no NVIDIA_API_KEY configured")
+    assert NvidiaClient(Settings(nvidia_api_key="secret", nvidia_fixture_mode=False)).mode()[0] == "LIVE"
 
 
 def test_retries_then_opens_circuit_without_exposing_key(caplog) -> None:
@@ -32,7 +32,7 @@ def test_retries_then_opens_circuit_without_exposing_key(caplog) -> None:
         calls += 1
         raise TimeoutError
 
-    client = NvidiaClient(Settings(nvidia_api_key="secret", nvidia_failure_threshold=2), requester=fail)
+    client = NvidiaClient(Settings(nvidia_api_key="secret", nvidia_failure_threshold=2, nvidia_fixture_mode=False), requester=fail)
     client.diagnose({})
     client.diagnose({})
     diagnosis = client.diagnose({})
@@ -49,7 +49,7 @@ def test_uses_meta_fallback_after_primary_fails() -> None:
             raise TimeoutError
         return Diagnosis(source="test", summary="fallback", probable_cause="test", confidence=1, offline=False, latency_ms=0)
 
-    diagnosis = NvidiaClient(Settings(nvidia_api_key="secret"), requester=request).diagnose({})
+    diagnosis = NvidiaClient(Settings(nvidia_api_key="secret", nvidia_fixture_mode=False), requester=request).diagnose({})
     assert diagnosis.source == "NVIDIA"
     assert diagnosis.summary == "fallback"
 
