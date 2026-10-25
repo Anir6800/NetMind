@@ -151,9 +151,9 @@ export function networkOf(cidr: string) {
   const mask = length === 0 ? 0 : (~0 << (32 - length)) >>> 0;
   return `${toIp((toInt(ip) & mask) >>> 0)}/${length}`;
 }
-const toInt = (ip: string) =>
+export const toInt = (ip: string) =>
   ip.split(".").reduce((sum, part) => ((sum << 8) | Number(part)) >>> 0, 0);
-const toIp = (value: number) =>
+export const toIp = (value: number) =>
   [24, 16, 8, 0].map((shift) => (value >>> shift) & 255).join(".");
 
 export function longestPrefixMatch(routes: Route[], ip: string): Route | undefined {

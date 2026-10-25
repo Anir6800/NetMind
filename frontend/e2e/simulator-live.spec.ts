@@ -41,7 +41,7 @@ test("right-click faults recalculate live and match Preview", async ({ page, req
     // Restore, then Preview the same fault: identical numbers.
     await page.mouse.click((r1.x + r2.x) / 2, (r1.y + r2.y) / 2, { button: "right" });
     await page.getByRole("menuitem", { name: "Restore link" }).click();
-    await page.getByLabel("Fault").selectOption("link-down");
+    await page.getByLabel("Fault", { exact: true }).selectOption("link-down");
     await page.getByLabel("Target").selectOption("l3");
     await page.getByRole("button", { name: "Preview impact" }).click();
     await expect(page.locator(".impact-card")).toContainText("PREVIEW");

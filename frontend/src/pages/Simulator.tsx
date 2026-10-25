@@ -21,6 +21,8 @@ import { ImpactCard, Legend, LinkInspector, NodeInspector, Palette } from "../fe
 import { set as setPlayback, usePlayback } from "../features/sim/playback";
 import { PacketInspector, PacketList, PlayerControls, RunLog } from "../features/sim/player";
 import { simulate } from "../sim/des";
+import { scenario, type Ladder, type ScenarioKind } from "../sim/protocols";
+import { LadderDiagram } from "../features/sim/ladder";
 import { AiPanel, describeSuggestion } from "../features/sim/ai";
 import { applySuggestion, connect as connectDevices, freshSubnet, type Suggestion } from "../sim/edit";
 import { ConvergencePanel, LearnedTables, RouteTable, TraceroutePanel } from "../features/sim/tables";
@@ -96,6 +98,8 @@ function Studio() {
   const [sizes, setSizes] = useState<Record<string, { width: number; height: number }>>({});
   const [hoverEdge, setHoverEdge] = useState("");
   const [connectTarget, setConnectTarget] = useState("");
+  const [ladder, setLadder] = useState<Ladder | null>(null);
+  const [ladderOptions, setLadderOptions] = useState({ kind: "tcp" as ScenarioKind, withFault: false, faultAtMs: 20 });
   const saved = useRef<Topology | null>(null);
   const dragOrigin = useRef<Topology | null>(null);
   const dataCache = useRef(new WeakMap<TopologyNode, DeviceData>());
@@ -539,6 +543,7 @@ function Studio() {
           <div className="player-dock">
             <PlayerControls />
           </div>
+          {ladder && <LadderDiagram ladder={ladder} label={label} onClose={() => setLadder(null)} />}
           {impact && (
             <ImpactCard
               title={impact.title}
@@ -765,6 +770,48 @@ function Studio() {
                   }}
                 >
                   Send &amp; play in slow motion
+                </button>
+              </fieldset>
+              <fieldset>
+                <legend>Protocol scenario · sequence diagram</legend>
+                <div className="field-grid">
+                  <label>
+                    Scenario
+                    <select aria-label="Scenario" value={ladderOptions.kind} onChange={(event) => setLadderOptions({ ...ladderOptions, kind: event.target.value as ScenarioKind })}>
+                      <option value="icmp">ICMP echo (ping)</option>
+                      <option value="arp">ARP request / reply</option>
+                      <option value="dhcp">DHCP DORA</option>
+                      <option value="dns">DNS query + cache</option>
+                      <option value="tcp">TCP handshake, slow start, teardown</option>
+                      <option value="udp">UDP datagrams</option>
+                      <option value="http">HTTP over TCP</option>
+                    </select>
+                  </label>
+                  <label>
+                    Fault starts at (ms)
+                    <input type="number" min={0} value={ladderOptions.faultAtMs} disabled={!ladderOptions.withFault} onChange={(event) => setLadderOptions({ ...ladderOptions, faultAtMs: Math.max(0, Number(event.target.value)) })} />
+                  </label>
+                </div>
+                <label className="check">
+                  <input type="checkbox" checked={ladderOptions.withFault} onChange={(event) => setLadderOptions({ ...ladderOptions, withFault: event.target.checked })} />
+                  Inject the fault selected above mid-scenario
+                </label>
+                <button
+                  disabled={!primary || primary.src === primary.dst}
+                  onClick={() => {
+                    const result = scenario(topology, {
+                      kind: ladderOptions.kind,
+                      protocol,
+                      src: primary!.src,
+                      dst: primary!.dst,
+                      fault: ladderOptions.withFault && faultTarget ? { kind: faultKind, target: faultTarget } : undefined,
+                      faultAtMs: ladderOptions.faultAtMs,
+                    });
+                    setLadder(result);
+                    log("PREVIEW", `${ladderOptions.kind.toUpperCase()} scenario ${label(primary!.src)} → ${label(primary!.dst)}${ladderOptions.withFault ? ` with ${faultKind} on ${faultTarget} at ${ladderOptions.faultAtMs} ms` : ""}: ${result.outcome}`);
+                  }}
+                >
+                  Show sequence diagram
                 </button>
               </fieldset>
               <RunPanel label={label} typeOf={(id) => byId.get(id)?.type ?? "host"} />

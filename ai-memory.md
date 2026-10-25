@@ -291,4 +291,7 @@
 - Parallel workflow (ultracode) built pure modules with build → adversarial review → fix: `sim/protocols.ts` (+8 tests), `sim/analysis.ts` (+9 tests, tie rule and link names fixed by lead), `backend/app/services/templates.py` (25 prepared labs), `scripts/export_templates.py`, `data/templates/*.json`, `backend/tests/test_templates.py`, `frontend/src/sim/templates.test.ts` (routes sample pairs in every template under static/RIP/OSPF). Not yet committed: needs UI integration in WP4/WP7.
 - WP6 commit: `68a52ac`.
 - WP9 partial DONE 2026-10-25: README rewritten (student quick start, feature table, viva "how it works", AI honesty, verification commands, ports). run/stop scripts unchanged apart from the WP1 Firebase wait fix.
-- Next: WP4 ladder UI, WP7 SPOF badges/dependency view/template dashboard, WP8.
+- WP9 partial commit: `4e3cef9`.
+- WP4 (protocol scenarios) DONE 2026-10-25: `sim/protocols.ts` (workflow-built, reviewed: ICMP, ARP, DHCP DORA, DNS + cache, TCP handshake/slow start/RTO retransmission/teardown, UDP, HTTP; timing from engine forward+pathMetrics; failures mid-scenario; simplifications listed per ladder), `protocols.test.ts` (8), `features/sim/ladder.tsx` (SVG sequence diagram beside the canvas), Simulate drawer "Protocol scenario" section with optional mid-scenario fault, engine exports toInt/toIp (dedupe), `e2e/protocols.spec.ts`.
+  - Observed: TCP h1→h2 with l3 down at 20 ms under static: SYN/SYN-ACK/ACK at 0 → 6.315 → 12.631 ms, data lost, retransmits at 1.026 s, 3.026 s, 7.026 s, "Connection reset after 3 retransmissions"; under OSPF the same fault completes. Playwright protocols + live specs 2/2.
+- Next: WP7 UI (SPOF badges, inspector impact/dependency view, dashboard from /networks/templates), WP8.
