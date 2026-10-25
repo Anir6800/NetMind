@@ -1,7 +1,7 @@
 import type { Ladder } from "../../sim/protocols";
 
 const COLUMN = 170;
-const ROW = 38;
+const ROW = 48;
 const TOP = 46;
 const time = (ms: number) => (ms < 1000 ? `${ms.toFixed(3)} ms` : `${(ms / 1000).toFixed(3)} s`);
 

@@ -353,3 +353,7 @@ h1, h2, h3 { margin: 0; }
 .tour-actions span { flex: 1; }
 .tour-button { font-weight: 700; color: var(--nm-accent); }
 .back-to-library { justify-self: start; }
+.ladder-card { grid-template-rows: auto minmax(0, 1fr) auto; overflow: hidden; }
+.ladder-scroll { max-height: none; min-height: 0; }
+.ladder-card details ul { max-height: 9rem; overflow-y: auto; margin: .4rem 0 0; padding-left: 1.1rem; line-height: 1.45; }
+.search-box input::-webkit-calendar-picker-indicator { opacity: .5; }

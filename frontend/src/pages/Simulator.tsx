@@ -505,7 +505,10 @@ function Studio() {
             placeholder="Find device…"
             aria-label="Find and focus a device"
             value={search}
-            onChange={(event) => setSearch(event.target.value)}
+            onChange={(event) => {
+              setSearch(event.target.value);
+              focusDevice(event.target.value); // zooms as soon as the name matches (typed or picked from the list)
+            }}
           />
           <datalist id="device-names">
             {topology.nodes.map((node) => (
