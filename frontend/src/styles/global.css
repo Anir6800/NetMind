@@ -352,3 +352,4 @@ h1, h2, h3 { margin: 0; }
 .tour-actions { display: flex; gap: .4rem; align-items: center; }
 .tour-actions span { flex: 1; }
 .tour-button { font-weight: 700; color: var(--nm-accent); }
+.back-to-library { justify-self: start; }

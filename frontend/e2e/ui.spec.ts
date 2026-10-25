@@ -113,3 +113,25 @@ test("prefers-reduced-motion replaces moving packets with static arrows", async 
     await request.delete(`/networks/${id}`);
   }
 });
+
+test("inspector has a way back to the device library", async ({ page, request }) => {
+  const { createLab } = await import("./helpers");
+  const id = await createLab(request);
+  try {
+    await login(page);
+    await page.goto(`/simulator/${id}?panel=canvas`);
+    const palette = page.getByRole("group", { name: "Device library" });
+    await page.locator('.react-flow__node[data-id="r1"]').click();
+    await expect(palette).toHaveCount(0);
+    await page.getByRole("button", { name: "← Device library" }).click();
+    await expect(palette).toBeVisible();
+    await page.locator('.react-flow__node[data-id="r2"]').click();
+    await page.locator(".react-flow__pane").click({ position: { x: 20, y: 20 } });
+    await expect(palette).toBeVisible();
+    await page.locator('.react-flow__node[data-id="r3"]').click();
+    await page.keyboard.press("Escape");
+    await expect(palette).toBeVisible();
+  } finally {
+    await request.delete(`/networks/${id}`);
+  }
+});

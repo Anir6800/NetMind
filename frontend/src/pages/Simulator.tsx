@@ -398,9 +398,18 @@ function Studio() {
     const type = event.dataTransfer.getData("device-type");
     if (DEVICE_TYPES.includes(type)) addDevice(type, flowApi.screenToFlowPosition({ x: event.clientX, y: event.clientY }));
   }
+  // Back from the inspector to the device library (also: click empty canvas or press Esc).
+  function closeInspector() {
+    setFocus(null);
+    setSelection({ nodes: [], edges: [] });
+  }
+
   function onKeyDown(event: KeyboardEvent) {
     const typing = (event.target as HTMLElement).closest("input, textarea, select");
-    if (event.key === "Escape") setMenu(null);
+    if (event.key === "Escape") {
+      setMenu(null);
+      if (!typing) closeInspector();
+    }
     if (typing) return;
     if ((event.ctrlKey || event.metaKey) && event.key.toLowerCase() === "z") {
       event.preventDefault();
@@ -547,7 +556,10 @@ function Studio() {
               setFocus({ kind: "link", id: edge.id });
               setMenu(null);
             }}
-            onPaneClick={() => setMenu(null)}
+            onPaneClick={() => {
+              setMenu(null);
+              closeInspector();
+            }}
             onEdgeMouseEnter={(_, edge) => setHoverEdge(edge.id)}
             onEdgeMouseLeave={() => setHoverEdge("")}
             onNodeContextMenu={(event, node) => {
@@ -639,6 +651,11 @@ function Studio() {
           )}
         </main>
         <aside className="drawer" aria-label={`${panel} panel`}>
+          {panel === "canvas" && (focusNode || focusLink) && (
+            <button className="ghost-button back-to-library" onClick={closeInspector}>
+              ← Device library
+            </button>
+          )}
           {panel === "canvas" &&
             (focusNode ? (
               <>
