@@ -84,6 +84,22 @@ def generate_network(request: GenerateRequest, session: Annotated[Session, Depen
     return GeneratedNetwork(network=network, topology=topology, source=answer.source, answered_by=answer.answered_by, notes=answer.notes, summary=spec.summary)
 
 
+@router.post("/import", response_model=NetworkResponse, status_code=201)
+def import_network(request: NetworkDocument, session: Annotated[Session, Depends(get_session)]) -> NetworkResponse:
+    try:
+        return NetworksService(session).import_network(request.name, request.topology)
+    except ValueError as error:
+        raise HTTPException(status_code=422, detail=str(error)) from error
+
+
+@router.post("/{network_id}/duplicate", response_model=NetworkResponse, status_code=201)
+def duplicate_network(network_id: int, session: Annotated[Session, Depends(get_session)]) -> NetworkResponse:
+    network = NetworksService(session).duplicate(network_id)
+    if network is None:
+        raise HTTPException(status_code=404, detail="Network not found")
+    return network
+
+
 @router.put("/{network_id}", response_model=NetworkResponse)
 def update_network(network_id: int, request: NetworkDocument, session: Annotated[Session, Depends(get_session)]) -> NetworkResponse:
     network = NetworksService(session).update(network_id, request.name, request.topology)

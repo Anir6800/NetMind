@@ -15,7 +15,7 @@ import {
 import "@xyflow/react/dist/style.css";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
-import { getNetworks, getTopology, saveNetwork, type Topology, type TopologyLink, type TopologyNode } from "../lib/api";
+import { downloadJson, getNetworks, getTopology, saveNetwork, type Topology, type TopologyLink, type TopologyNode } from "../lib/api";
 import { DEVICE_TYPES, DeviceSymbol, edgeTypes, nodeTypes, type DeviceData, type TrafficData } from "../features/sim/canvas";
 import { ImpactCard, Legend, LinkInspector, NodeInspector, Palette } from "../features/sim/panels";
 import { set as setPlayback, usePlayback } from "../features/sim/playback";
@@ -25,6 +25,7 @@ import { scenario, type Ladder, type ScenarioKind } from "../sim/protocols";
 import { LadderDiagram } from "../features/sim/ladder";
 import { criticalSummary } from "../sim/analysis";
 import { CriticalList, DependencyView, LinkImpact } from "../features/sim/critical";
+import { LessonPanel } from "../features/sim/lesson";
 import { AiPanel, describeSuggestion } from "../features/sim/ai";
 import { applySuggestion, connect as connectDevices, freshSubnet, type Suggestion } from "../sim/edit";
 import { ConvergencePanel, LearnedTables, RouteTable, TraceroutePanel } from "../features/sim/tables";
@@ -101,6 +102,8 @@ function Studio() {
   const [hoverEdge, setHoverEdge] = useState("");
   const [connectTarget, setConnectTarget] = useState("");
   const [ladder, setLadder] = useState<Ladder | null>(null);
+  const [draft, setDraft] = useState<{ at: string; topology: Topology } | null>(null);
+  const draftKey = `netmind-draft-${networkId}`;
   const [ladderOptions, setLadderOptions] = useState({ kind: "tcp" as ScenarioKind, withFault: false, faultAtMs: 20 });
   const saved = useRef<Topology | null>(null);
   const dragOrigin = useRef<Topology | null>(null);
@@ -124,6 +127,12 @@ function Studio() {
     const loaded = topologyQuery.data.topology;
     saved.current = loaded;
     setHistory({ past: [], present: loaded, future: [] });
+    try {
+      const stored = JSON.parse(localStorage.getItem(`netmind-draft-${networkId}`) ?? "null");
+      if (stored && JSON.stringify(stored.topology) !== JSON.stringify(loaded)) setDraft(stored);
+    } catch {
+      /* drafts are a convenience only */
+    }
     const endpoints = loaded.nodes.filter((node) => ["host", "server"].includes(node.type));
     const src = endpoints[0]?.id ?? loaded.nodes[0]?.id ?? "";
     const dst = endpoints.at(-1)?.id ?? loaded.nodes.at(-1)?.id ?? "";
@@ -138,6 +147,19 @@ function Studio() {
       /* storage is a convenience only */
     }
   }, [networkId, topology, topologyQuery.data]);
+
+  // Autosave an unsaved draft in this browser (per network) two seconds after each change.
+  useEffect(() => {
+    if (!topology || topology === saved.current) return;
+    const timer = window.setTimeout(() => {
+      try {
+        localStorage.setItem(draftKey, JSON.stringify({ at: new Date().toLocaleTimeString(), topology }));
+      } catch {
+        /* storage full or blocked: drafts are a convenience only */
+      }
+    }, 2000);
+    return () => clearTimeout(timer);
+  }, [draftKey, topology]);
 
   // Moving to a projector or resizing the window refits the whole network.
   useEffect(() => {
@@ -416,6 +438,11 @@ function Studio() {
       await saveNetwork(networkId, name, document);
       saved.current = topology;
       setSaveState("Saved to PostgreSQL");
+      try {
+        localStorage.removeItem(draftKey);
+      } catch {
+        /* ignore */
+      }
     } catch {
       setSaveState("Save failed — check names and addresses");
     }
@@ -487,6 +514,9 @@ function Studio() {
           <span className="save-state" role="status">
             {saveState || (dirty ? "Unsaved changes" : "")}
           </span>
+          <button className="ghost-button" onClick={() => downloadJson(`${name || "network"}.netmind.json`, { name, topology })} title="Download this network as JSON">
+            Export
+          </button>
           <button className="primary-button" onClick={persist}>
             Save
           </button>
@@ -552,6 +582,51 @@ function Studio() {
           <div className="player-dock">
             <PlayerControls />
           </div>
+          {draft && (
+            <div className="draft-banner" role="alert">
+              Unsaved draft from {draft.at} found.
+              <button
+                className="primary-button"
+                onClick={() => {
+                  commit(draft.topology);
+                  setDraft(null);
+                }}
+              >
+                Restore draft
+              </button>
+              <button
+                className="ghost-button"
+                onClick={() => {
+                  setDraft(null);
+                  try {
+                    localStorage.removeItem(draftKey);
+                  } catch {
+                    /* ignore */
+                  }
+                }}
+              >
+                Discard
+              </button>
+            </div>
+          )}
+          {searchParams.get("lesson") && (
+            <LessonPanel
+              lessonId={searchParams.get("lesson")!}
+              topology={topology}
+              protocol={protocol}
+              flows={flows}
+              panel={panel}
+              focus={focus}
+              change={change}
+              ladder={ladder}
+              onClose={() =>
+                setSearchParams((params) => {
+                  params.delete("lesson");
+                  return params;
+                })
+              }
+            />
+          )}
           {ladder && <LadderDiagram ladder={ladder} label={label} onClose={() => setLadder(null)} />}
           {impact && (
             <ImpactCard

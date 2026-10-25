@@ -152,3 +152,15 @@ export async function getTemplates(): Promise<TemplateInfo[]> {
   if (!response.ok) throw new Error("Templates unavailable");
   return response.json() as Promise<TemplateInfo[]>;
 }
+
+export const importNetwork = (name: string, topology: Topology) => post<NetworkSummary>("/networks/import", { name, topology }, "Import failed");
+export const duplicateNetwork = (id: number) => post<NetworkSummary>(`/networks/${id}/duplicate`, {}, "Duplicate failed");
+
+export function downloadJson(filename: string, data: unknown) {
+  const url = URL.createObjectURL(new Blob([JSON.stringify(data, null, 2)], { type: "application/json" }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}

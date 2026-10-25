@@ -6,9 +6,14 @@ import {
   deleteNetwork,
   generateNetwork,
   getNetworks,
+  downloadJson,
+  duplicateNetwork,
   getTemplates,
+  getTopology,
+  importNetwork,
   type NetworkForm,
 } from "../lib/api";
+import { LESSONS } from "../sim/lessons";
 
 const FORM_FIELDS = ["routers", "firewalls", "switches", "access_points", "hubs", "repeaters", "servers", "hosts"] as const;
 
@@ -31,8 +36,9 @@ export function Dashboard() {
   const formTotal = FORM_FIELDS.reduce((sum, key) => sum + form[key], 0);
   const generate = useMutation({
     mutationFn: generateNetwork,
-    onSuccess: ({ network, answered_by, notes }) => {
+    onSuccess: ({ network, answered_by, notes }, input) => {
       queryClient.invalidateQueries({ queryKey: ["networks"] });
+      if (input.name.startsWith("Lesson: ")) return; // startLesson navigates with the lesson open
       const params = new URLSearchParams({ planner: answered_by });
       if (notes.length) params.set("notes", notes.join(" · "));
       navigate(`/simulator/${network.id}?${params}`);
@@ -45,6 +51,29 @@ export function Dashboard() {
       navigate(`/simulator/${network.id}`);
     },
   });
+  const [fileError, setFileError] = useState("");
+  const duplicate = useMutation({ mutationFn: duplicateNetwork, onSuccess: () => queryClient.invalidateQueries({ queryKey: ["networks"] }) });
+  async function exportNetwork(id: number, label: string) {
+    const { topology } = await getTopology(id);
+    downloadJson(`${label}.netmind.json`, { name: label, topology });
+  }
+  async function importFile(file: File) {
+    setFileError("");
+    try {
+      const data = JSON.parse(await file.text());
+      if (!data?.topology?.nodes) throw new Error("This file is not a NetMind network export.");
+      const network = await importNetwork(String(data.name ?? file.name.replace(/\.json$/, "")), data.topology);
+      queryClient.invalidateQueries({ queryKey: ["networks"] });
+      navigate(`/simulator/${network.id}`);
+    } catch (reason) {
+      setFileError(reason instanceof Error ? reason.message : "Import failed");
+    }
+  }
+  async function startLesson(lesson: (typeof LESSONS)[number]) {
+    const template = templates.find((item) => item.id === lesson.template);
+    const result = await generate.mutateAsync({ name: `Lesson: ${lesson.title} ${Date.now().toString().slice(-4)}`, category: lesson.template, device_count: template?.device_count ?? 20, protocol: template?.protocol ?? "ospf", prompt: "" }).catch(() => null);
+    if (result) navigate(`/simulator/${result.network.id}?panel=simulate&lesson=${lesson.id}`);
+  }
   const remove = useMutation({
     mutationFn: deleteNetwork,
     onSuccess: () => queryClient.invalidateQueries({ queryKey: ["networks"] }),
@@ -198,6 +227,14 @@ export function Dashboard() {
                     <strong>{network.name}</strong>
                     <small>Topology {network.topology_version}</small>
                   </button>
+                  <span className="saved-actions">
+                    <button onClick={() => duplicate.mutate(network.id)} aria-label={`Duplicate ${network.name}`}>
+                      Duplicate
+                    </button>
+                    <button onClick={() => exportNetwork(network.id, network.name)} aria-label={`Export ${network.name}`}>
+                      Export
+                    </button>
+                  </span>
                   <button
                     className="danger-button"
                     aria-label={`Delete ${network.name}`}
@@ -213,6 +250,33 @@ export function Dashboard() {
             </div>
           )}
         </article>
+      </section>
+      <section className="template-section">
+        <div className="panel-heading">
+          <div>
+            <p className="eyebrow">GUIDED LABS</p>
+            <h2>Learn step by step</h2>
+          </div>
+          <label className="manual-button import-button">
+            Import network (.json)
+            <input type="file" accept="application/json,.json" hidden onChange={(event) => event.target.files?.[0] && importFile(event.target.files[0])} />
+          </label>
+        </div>
+        {fileError && (
+          <p role="alert" className="form-error">
+            {fileError}
+          </p>
+        )}
+        <div className="lesson-grid">
+          {LESSONS.map((lesson, index) => (
+            <button key={lesson.id} className="template-card" disabled={generate.isPending || !templates.length} onClick={() => startLesson(lesson)}>
+              <span className="template-number">LESSON {index + 1} · {lesson.minutes} min</span>
+              <strong>{lesson.title}</strong>
+              <small>{lesson.summary}</small>
+              <small className="template-meta">{lesson.steps.length} steps · {lesson.template}</small>
+            </button>
+          ))}
+        </div>
       </section>
       <section className="template-section">
         <div className="panel-heading">

@@ -2,8 +2,10 @@ import json
 from datetime import UTC, datetime
 from pathlib import Path
 
+from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.db.models import Network
 from app.integrations.nvidia_client import get_ai_client
 from app.repositories.networks import NetworksRepository
 from app.schemas.network import Topology
@@ -33,6 +35,32 @@ class NetworksService:
         network.topology_data = topology.model_dump_json()
         self.repository.session.commit()
         return network
+
+    def unique_name(self, name: str, suffix: str, first: str | None = None) -> str:
+        """name, then name+first, then name+suffix.format(n) for n = 2.. until no network uses it."""
+        taken = set(self.repository.session.scalars(select(Network.name)))
+        if name not in taken:
+            return name
+        if first is not None and name + first not in taken:
+            return name + first
+        n = 2
+        while name + suffix.format(n) in taken:
+            n += 1
+        return name + suffix.format(n)
+
+    def import_network(self, name: str, topology: Topology):
+        # Students may export unfinished labs, so only connectivity is waived.
+        problems = [p for p in validate_lab(topology) if not p.endswith("not connected to the rest of the network")]
+        if problems:
+            raise ValueError("Import rejected: " + "; ".join(problems))
+        return self.create(self.unique_name(name, " ({})"), topology)
+
+    def duplicate(self, network_id: int):
+        result = self.topology(network_id)
+        if result is None:
+            return None
+        name = self.repository.get(network_id).name
+        return self.create(self.unique_name(name, " (copy {})", " (copy)"), result[0])
 
     def update(self, network_id: int, name: str, topology: Topology):
         network = self.repository.get(network_id)

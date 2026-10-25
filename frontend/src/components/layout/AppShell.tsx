@@ -20,6 +20,13 @@ function lastNetwork() {
   }
 }
 
+// Switching drawers keeps the rest of the query (lesson, planner notes).
+function withPanel(current: URLSearchParams | null, panel: string) {
+  const next = new URLSearchParams(current ?? undefined);
+  next.set("panel", panel);
+  return next.toString();
+}
+
 export function AppShell() {
   const navigate = useNavigate();
   const inSimulator = useMatch("/simulator/:networkId");
@@ -43,7 +50,7 @@ export function AppShell() {
           networkId ? (
             <Link
               key={panel}
-              to={`/simulator/${networkId}?panel=${panel}`}
+              to={`/simulator/${networkId}?${withPanel(inSimulator ? params : null, panel)}`}
               className={`pill-item${active === panel ? " active" : ""}`}
               aria-current={active === panel ? "page" : undefined}
             >
