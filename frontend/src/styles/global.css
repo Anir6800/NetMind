@@ -293,3 +293,5 @@ h1, h2, h3 { margin: 0; }
 .suggestion-list small { color: var(--nm-text-muted); }
 .planner-notes { color: var(--nm-text-muted); font-size: .7rem; max-width: 26rem; }
 @media (max-width: 800px) { .form-grid { grid-template-columns: 1fr 1fr; } }
+.connect-row { display: grid; grid-template-columns: 1fr auto; gap: .4rem; }
+.player .player-close { margin-left: auto; }

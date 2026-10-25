@@ -159,17 +159,31 @@ class _Builder:
 
 def build_topology(spec: NetworkSpec, plan: str = "") -> Topology:
     b = _Builder(spec)
-    width = 1500
-    spread = lambda count, index, row: (width * (index + 1) / (count + 1), row)
-    routers = [b.add("router", "R", *spread(spec.routers, i, 0)) for i in range(spec.routers)]
-    firewalls = [b.add("firewall", "FW", *spread(spec.firewalls, i, 150)) for i in range(spec.firewalls)]
-    switches = [b.add("switch", "SW", *spread(spec.switches, i, 300)) for i in range(spec.switches)]
-    edge = [b.add("access-point", "AP", *spread(spec.access_points + spec.hubs, i, 450)) for i in range(spec.access_points)]
-    hubs = [b.add("hub", "HUB", *spread(spec.access_points + spec.hubs, spec.access_points + i, 450)) for i in range(spec.hubs)]
-    repeaters = [b.add("repeater", "REP", *spread(spec.repeaters, i, 375)) for i in range(spec.repeaters)]
-    ends = spec.servers + spec.hosts
-    servers = [b.add("server", "SRV", *spread(ends, i, 600)) for i in range(spec.servers)]
-    hosts = [b.add("host", "PC", *spread(ends, spec.servers + i, 600)) for i in range(spec.hosts)]
+    # Layered layout: one tier per device kind, wrapped at 12 cards per row so
+    # 50-device labs stay readable (card width ~150 px).
+    gap_x, gap_y, per_row = 180, 130, 12
+    top = [0.0]
+
+    def tier(count: int) -> list[tuple[float, float]]:
+        cells = []
+        for index in range(count):
+            in_row = min(per_row, count - (index // per_row) * per_row)
+            x = (per_row - in_row) * gap_x / 2 + (index % per_row) * gap_x
+            cells.append((x, top[0] + (index // per_row) * gap_y))
+        if count:
+            top[0] += (-(-count // per_row)) * gap_y
+        return cells
+
+    routers = [b.add("router", "R", *cell) for cell in tier(spec.routers)]
+    firewalls = [b.add("firewall", "FW", *cell) for cell in tier(spec.firewalls)]
+    switches = [b.add("switch", "SW", *cell) for cell in tier(spec.switches)]
+    edge_cells = tier(spec.access_points + spec.hubs + spec.repeaters)
+    edge = [b.add("access-point", "AP", *edge_cells[i]) for i in range(spec.access_points)]
+    hubs = [b.add("hub", "HUB", *edge_cells[spec.access_points + i]) for i in range(spec.hubs)]
+    repeaters = [b.add("repeater", "REP", *edge_cells[spec.access_points + spec.hubs + i]) for i in range(spec.repeaters)]
+    end_cells = tier(spec.servers + spec.hosts)
+    servers = [b.add("server", "SRV", *end_cells[i]) for i in range(spec.servers)]
+    hosts = [b.add("host", "PC", *end_cells[spec.servers + i]) for i in range(spec.hosts)]
 
     # Router interconnect by style.
     pairs: list[tuple[str, str]] = []

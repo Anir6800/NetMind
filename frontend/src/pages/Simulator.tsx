@@ -92,6 +92,10 @@ function Studio() {
   const [saveState, setSaveState] = useState("");
   const [search, setSearch] = useState("");
   const [runOptions, setRunOptions] = useState({ count: 3, intervalMs: 1, seed: 1, ttl: 64, warmArp: false });
+  // React Flow reports node sizes as changes; controlled nodes must carry them back (minimap, fitView).
+  const [sizes, setSizes] = useState<Record<string, { width: number; height: number }>>({});
+  const [hoverEdge, setHoverEdge] = useState("");
+  const [connectTarget, setConnectTarget] = useState("");
   const saved = useRef<Topology | null>(null);
   const dragOrigin = useRef<Topology | null>(null);
   const dataCache = useRef(new WeakMap<TopologyNode, DeviceData>());
@@ -128,6 +132,20 @@ function Studio() {
       /* storage is a convenience only */
     }
   }, [networkId, topology, topologyQuery.data]);
+
+  // Moving to a projector or resizing the window refits the whole network.
+  useEffect(() => {
+    let timer = 0;
+    const refit = () => {
+      clearTimeout(timer);
+      timer = window.setTimeout(() => flowApi.fitView({ duration: 300 }), 200);
+    };
+    window.addEventListener("resize", refit);
+    return () => {
+      clearTimeout(timer);
+      window.removeEventListener("resize", refit);
+    };
+  }, [flowApi]);
 
   useEffect(() => {
     if (!name && networks.data) setName(networks.data.find((item) => item.id === networkId)?.name ?? `Network ${networkId}`);
@@ -172,9 +190,9 @@ function Studio() {
         data = { node, role, unreachable: lost };
         dataCache.current.set(node, data);
       }
-      return { id: node.id, type: "device", position: { x: node.x ?? 0, y: node.y ?? 0 }, data, selected: selection.nodes.includes(node.id) };
+      return { id: node.id, type: "device", position: { x: node.x ?? 0, y: node.y ?? 0 }, data, selected: selection.nodes.includes(node.id), measured: sizes[node.id] };
     });
-  }, [primary, selection.nodes, topology, unreachable]);
+  }, [primary, selection.nodes, sizes, topology, unreachable]);
 
   const rfEdges = useMemo<Edge[]>(() => {
     if (!topology) return [];
@@ -193,13 +211,14 @@ function Studio() {
     return topology.links.map((link) => {
       const flow = direction.get(link.id) ?? { forward: false, backward: false };
       let data = edgeCache.current.get(link);
-      if (!data || data.forward !== flow.forward || data.backward !== flow.backward) {
-        data = { link, utilisation: link.utilisation_pct ?? 0, ...flow };
+      const showLabel = hoverEdge === link.id;
+      if (!data || data.forward !== flow.forward || data.backward !== flow.backward || data.showLabel !== showLabel) {
+        data = { link, utilisation: link.utilisation_pct ?? 0, ...flow, showLabel };
         edgeCache.current.set(link, data);
       }
       return { id: link.id, source: link.a.node_id, target: link.b.node_id, type: "traffic", data, selected: selection.edges.includes(link.id) };
     });
-  }, [results, selection.edges, topology]);
+  }, [hoverEdge, results, selection.edges, topology]);
 
   // ---------- edits ----------
 
@@ -318,14 +337,22 @@ function Studio() {
         nodes = nodes.map((node) => (node.id === change.id ? { ...node, x, y } : node));
       }
       if (change.type === "select") picked = change.selected ? [...new Set([...picked, change.id])] : picked.filter((id) => id !== change.id);
+      // Keyboard selection (Tab + Enter) opens the inspector just like a click.
+      if (change.type === "select" && change.selected) setFocus({ kind: "node", id: change.id });
+      if (change.type === "dimensions" && change.dimensions) {
+        const { width, height } = change.dimensions;
+        setSizes((current) => (current[change.id]?.width === width && current[change.id]?.height === height ? current : { ...current, [change.id]: { width, height } }));
+      }
     }
     if (nodes !== topology.nodes) setHistory((h) => ({ ...h, present: { ...topology, nodes } }));
     if (picked !== selection.nodes) setSelection((current) => ({ ...current, nodes: picked }));
   }
   function onEdgesChange(changes: EdgeChange[]) {
     let picked = selection.edges;
-    for (const change of changes)
+    for (const change of changes) {
       if (change.type === "select") picked = change.selected ? [...new Set([...picked, change.id])] : picked.filter((id) => id !== change.id);
+      if (change.type === "select" && change.selected) setFocus({ kind: "link", id: change.id });
+    }
     if (picked !== selection.edges) setSelection((current) => ({ ...current, edges: picked }));
   }
   function openMenu(kind: Menu["kind"], id: string, x: number, y: number) {
@@ -478,6 +505,8 @@ function Studio() {
               setMenu(null);
             }}
             onPaneClick={() => setMenu(null)}
+            onEdgeMouseEnter={(_, edge) => setHoverEdge(edge.id)}
+            onEdgeMouseLeave={() => setHoverEdge("")}
             onNodeContextMenu={(event, node) => {
               event.preventDefault();
               openMenu("node", node.id, event.clientX, event.clientY);
@@ -535,14 +564,16 @@ function Studio() {
                     Delete
                   </button>
                 </div>
-                <label>
-                  Connect to
-                  <select
-                    aria-label="Connect to"
-                    value=""
-                    onChange={(event) => event.target.value && connect(focusNode.id, event.target.value)}
-                  >
-                    <option value="">Choose a device…</option>
+                <form
+                  className="connect-row"
+                  onSubmit={(event) => {
+                    event.preventDefault();
+                    if (connectTarget) connect(focusNode.id, connectTarget);
+                    setConnectTarget("");
+                  }}
+                >
+                  <select aria-label="Connect to" value={connectTarget} onChange={(event) => setConnectTarget(event.target.value)}>
+                    <option value="">Connect to…</option>
                     {topology.nodes
                       .filter((node) => node.id !== focusNode.id)
                       .map((node) => (
@@ -551,7 +582,10 @@ function Studio() {
                         </option>
                       ))}
                   </select>
-                </label>
+                  <button type="submit" disabled={!connectTarget}>
+                    Connect
+                  </button>
+                </form>
               </>
             ) : focusLink ? (
               <>

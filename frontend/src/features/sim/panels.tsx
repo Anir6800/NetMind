@@ -269,10 +269,10 @@ export function LinkInspector({ link, label, onChange }: { link: TopologyLink; l
 
 export function Palette({ onAdd, full }: { onAdd: (type: string) => void; full: boolean }) {
   return (
-    <div className="device-palette" role="list">
+    <div className="device-palette" role="group" aria-label="Device library">
       {DEVICE_TYPES.map((type) => (
         <button
-          role="listitem"
+          aria-label={`Add ${type}`}
           draggable
           disabled={full}
           onDragStart={(event) => event.dataTransfer.setData("device-type", type)}

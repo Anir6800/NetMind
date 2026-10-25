@@ -19,6 +19,9 @@ export function PlayerControls() {
           Step ⏭
         </button>
         <button onClick={() => set({ clock: 0, playing: false })}>⟲ Reset</button>
+        <button className="player-close" onClick={() => set({ run: null, clock: 0, playing: false, selected: null })} aria-label="Close player">
+          ✕
+        </button>
         <label className="speed">
           Speed
           <select aria-label="Speed" value={speed} onChange={(event) => set({ speed: Number(event.target.value) })}>
