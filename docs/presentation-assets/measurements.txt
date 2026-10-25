@@ -1,0 +1,38 @@
+PING before {"path":["h1","sw1","r1","r2","sw2","h2"],"ttl":62,"metrics":{"propagation":5,"transmission":0.025088,"processing":1.3,"queueing":0,"total":6.325088,"jitter":0,"loss":0,"bottleneckMbps":100,"bottleneckLink":"l1","throughputMbps":100},"rtt":12.650176}
+PING after l3 down {"path":["h1","sw1","r1","r3","r2","sw2","h2"],"ttl":61,"oneWay":14.974048,"rtt":29.948096}
+CONVERGENCE static [{"seed":1,"detectionMs":0,"convergedMs":null,"outageMs":null,"packetsLost":null,"reachableAtEnd":false},{"seed":2,"detectionMs":0,"convergedMs":null,"outageMs":null,"packetsLost":null,"reachableAtEnd":false},{"seed":3,"detectionMs":0,"convergedMs":null,"outageMs":null,"packetsLost":null,"reachableAtEnd":false},{"seed":4,"detectionMs":0,"convergedMs":null,"outageMs":null,"packetsLost":null,"reachableAtEnd":false},{"seed":5,"detectionMs":0,"convergedMs":null,"outageMs":null,"packetsLost":null,"reachableAtEnd":false}]
+CONVERGENCE rip [{"seed":1,"detectionMs":0,"convergedMs":9466.969,"outageMs":8407.724,"packetsLost":841,"reachableAtEnd":true},{"seed":2,"detectionMs":0,"convergedMs":10926.301,"outageMs":9283.214,"packetsLost":928,"reachableAtEnd":true},{"seed":3,"detectionMs":0,"convergedMs":7295.881,"outageMs":7295.881,"packetsLost":730,"reachableAtEnd":true},{"seed":4,"detectionMs":0,"convergedMs":10471.659,"outageMs":10471.659,"packetsLost":1047,"reachableAtEnd":true},{"seed":5,"detectionMs":0,"convergedMs":10450.973,"outageMs":10450.973,"packetsLost":1045,"reachableAtEnd":true}]
+CONVERGENCE ospf [{"seed":1,"detectionMs":0,"convergedMs":206.91,"outageMs":200,"packetsLost":20,"reachableAtEnd":true},{"seed":2,"detectionMs":0,"convergedMs":206.91,"outageMs":200,"packetsLost":20,"reachableAtEnd":true},{"seed":3,"detectionMs":0,"convergedMs":206.91,"outageMs":200,"packetsLost":20,"reachableAtEnd":true},{"seed":4,"detectionMs":0,"convergedMs":206.91,"outageMs":200,"packetsLost":20,"reachableAtEnd":true},{"seed":5,"detectionMs":0,"convergedMs":206.91,"outageMs":200,"packetsLost":20,"reachableAtEnd":true}]
+TEMPLATE bank.json devices=32 links=41 spof_entries=27 top="if FW1 fails, 5 devices lose reachability"
+TEMPLATE branch.json devices=21 links=20 spof_entries=30 top="if R1 fails, the network splits into two equal halves of 4 devices"
+TEMPLATE campus-ring.json devices=34 links=34 spof_entries=41 top="if the R1–SW1 link fails, 10 devices lose reachability"
+TEMPLATE campus.json devices=47 links=54 spof_entries=48 top="if FW1 fails, 14 devices lose reachability"
+TEMPLATE cloud.json devices=19 links=18 spof_entries=24 top="if FW1 fails, the network splits into two equal halves of 9 devices"
+TEMPLATE data-center.json devices=42 links=44 spof_entries=50 top="if SW1 fails, 21 devices lose reachability"
+TEMPLATE enterprise.json devices=48 links=59 spof_entries=43 top="if FW1 fails, 10 devices lose reachability"
+TEMPLATE factory.json devices=25 links=24 spof_entries=35 top="if the R1–R2 link fails, 12 devices lose reachability"
+TEMPLATE home.json devices=9 links=8 spof_entries=10 top="if the SW1–AP1 link fails, 4 devices lose reachability"
+TEMPLATE hospital.json devices=35 links=42 spof_entries=34 top="if FW1 fails, 9 devices lose reachability"
+TEMPLATE hotel.json devices=30 links=29 spof_entries=40 top="if R1 fails, the network splits into two equal halves of 10 devices"
+TEMPLATE iot.json devices=40 links=39 spof_entries=48 top="if R1 fails, 23 devices lose reachability"
+TEMPLATE isp-backbone.json devices=24 links=33 spof_entries=14 top="if SW1 fails, 4 devices lose reachability"
+TEMPLATE ladder-large.json devices=50 links=64 spof_entries=46 top="if FW1 fails, 11 devices lose reachability"
+TEMPLATE ladder-medium.json devices=30 links=35 spof_entries=37 top="if the R1–SW1 link fails, 8 devices lose reachability"
+TEMPLATE ladder-small.json devices=10 links=9 spof_entries=13 top="if the R1–R2 link fails, the network splits into two equal halves of 5 devices"
+TEMPLATE legacy-lan.json devices=10 links=9 spof_entries=13 top="if SW1 fails, the network splits into two equal halves of 2 devices"
+TEMPLATE office.json devices=13 links=12 spof_entries=16 top="if SW1 fails, 7 devices lose reachability"
+TEMPLATE ospf-lab.json devices=16 links=25 spof_entries=16 top="if the R1–SW1 link fails, 4 devices lose reachability"
+TEMPLATE retail.json devices=25 links=24 spof_entries=36 top="if R1 fails, the network splits into two equal halves of 4 devices"
+TEMPLATE rip-lab.json devices=14 links=14 spof_entries=10 top="if the R1–SW1 link fails, 3 devices lose reachability"
+TEMPLATE school.json devices=30 links=29 spof_entries=34 top="if R1 fails, the network splits into two equal halves of 10 devices"
+TEMPLATE security.json devices=21 links=28 spof_entries=17 top="if FW1 fails, 4 devices lose reachability"
+TEMPLATE voip.json devices=19 links=18 spof_entries=23 top="if R1 fails, 11 devices lose reachability"
+TEMPLATE wireless-mesh.json devices=30 links=32 spof_entries=40 top="if the R1–SW1 link fails, 8 devices lose reachability"
+SPEED devices 50 links 64
+SPEED compareImpact ms 11.635
+SPEED converge ospf ms 21.454
+SPEED converge rip ms 46.384
+SPEED DES 20 packets ms 7.379
+SPEED criticalSummary ms 1.913
+50-DEVICE cut link-router-1-router-2 rip converged 45638.03 outage 0 lost 0 reachableAtEnd true
+50-DEVICE cut link-router-1-router-2 ospf converged 208.327 outage 0 lost 0 reachableAtEnd true
