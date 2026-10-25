@@ -59,6 +59,10 @@ cd frontend && npx playwright test     # needs the stack from run.ps1
 
 The latest observed results are recorded per work package in [ai-memory.md](ai-memory.md).
 
+## Icons and licences
+
+UI and device icons come from Google's **Material Symbols** (rounded style, via the `@material-symbols/svg-400` and `svg-300` npm packages, Apache License 2.0). They are self-hosted: `npm run icons` (`frontend/scripts/build-icons.mjs`) copies only the icons the app uses into `frontend/src/components/icons/material.generated.ts`, so nothing loads from a CDN and the app works offline. The switch, hub, repeater and firewall symbols are original drawings (Material has no clear match); they are not copied from any vendor icon set.
+
 ## Development notes
 
 - Ports: PostgreSQL 5432, API 8000, frontend 5173 (falls back to 5174), Firebase Auth emulator 9099, controller 8765. `run.ps1 -Check` checks them without starting anything.

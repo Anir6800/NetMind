@@ -304,3 +304,11 @@
 - Tutorial (user request mid-task) DONE 2026-10-25: `components/layout/Tour.tsx` spotlight tour (dashboard 7 steps, simulator 12 steps covering create/drag/connect, right-click real-time before/after, simulate, preview, slow motion, tables/convergence, logs, AI, save/undo/export, find). Auto-runs once per browser for new users, Skip / Back / Next / Esc / arrow keys, "?" in the pill replays it. Simulator steps open the matching drawer. E2E helper marks the tour as seen; `e2e/tour.spec.ts` covers it.
 - FINAL WP9 (2026-10-25): backend 177 passed, ruff clean; frontend unit 127/127; build passed (only the existing >500 kB chunk warning); Playwright 14/14 (13 specs files) against the running stack with LIVE AI; 50 devices/61 links fps 60.2–60.4; `run.ps1 -Check` on the running stack reports idempotent "already running". In the last full run the LIVE model returned malformed JSON for Suggest and the server correctly fell back to the labelled local planner.
 - Status: NM-SIM-CONTINUE COMPLETE. Known limits: see README / docs/sim_model.md "Not modelled"; lesson tcp-retransmit cannot verify the "same fault" mid-scenario (uses a live link-down instead); spanning tree, VLANs, NAT, collisions and full TCP not modelled; 25 templates use one deterministic builder (layout styles differ, not hand-drawn).
+
+## NM-UI-SYMBOLS — Material Symbols icon system and redesigned symbols
+
+- Status: IN_PROGRESS
+- Started: 2026-10-25
+- Scope: Part A icon system, Part B canvas symbols, Part C navigation/chrome, Part D perf/a11y/bundle/screenshots/offline. No backend or simulation changes.
+- Baseline before UI changes: build JS 771.49 kB (gzip 247.59 kB), CSS 44.97 kB; fps 60.3 (50 devices, 61 links, 5 flows, playback).
+- Part A DONE: `@material-symbols/svg-400` + `svg-300` 0.48.1 (Apache-2.0), rounded style; `scripts/build-icons.mjs` (npm run icons) generates `src/components/icons/material.generated.ts` with only 43 used icons (fails if a name is missing; `auto_awesome` absent in this version → AI uses `wand_stars`); `registry.ts` (Material or original 24 px stroke symbols for switch/hub/repeater/firewall + shield badge), `Icon.tsx` (sizes 16–48, FILL 0/1, weight 300 at ≥32 px, aria-label+title or aria-hidden), `registry.test.ts`. Frontend has no separate linter: "lint" = `tsc -b` strict in the build. Unit 129/129.

@@ -357,3 +357,8 @@ h1, h2, h3 { margin: 0; }
 .ladder-scroll { max-height: none; min-height: 0; }
 .ladder-card details ul { max-height: 9rem; overflow-y: auto; margin: .4rem 0 0; padding-left: 1.1rem; line-height: 1.45; }
 .search-box input::-webkit-calendar-picker-indicator { opacity: .5; }
+
+/* ---------- icons ---------- */
+.nm-icon { flex: none; vertical-align: middle; }
+.nm-icon--down { color: var(--nm-danger-text); }
+.nm-icon--warn { color: var(--nm-warning); }
