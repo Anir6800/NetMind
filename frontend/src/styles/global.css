@@ -312,3 +312,13 @@ h1, h2, h3 { margin: 0; }
 .ladder-time { fill: var(--nm-text-muted); font: 9px var(--nm-font-data); }
 .ladder-local rect { fill: var(--nm-violet-wash); stroke: var(--nm-violet-soft); }
 .ladder-lost rect { fill: color-mix(in srgb, var(--nm-danger) 20%, transparent); stroke: var(--nm-danger); }
+.template-meta { color: var(--nm-primary-hover) !important; font: .7rem var(--nm-font-data); }
+
+/* ---------- critical analysis ---------- */
+.bridge-mark rect { fill: var(--nm-danger); opacity: .85; }
+.bridge-mark text { fill: #fff; font: 700 8px var(--nm-font-data); text-anchor: middle; }
+.critical-list, .dependency-view { display: grid; gap: .45rem; padding-top: .6rem; border-top: 1px solid var(--nm-border); }
+.critical-list ol { display: grid; gap: .3rem; margin: 0; padding: 0; list-style: none; }
+.link-button { display: flex; gap: .4rem; align-items: center; width: 100%; min-height: 2rem !important; padding: .3rem .5rem !important; border-radius: .5rem !important; text-align: left; font-size: .76rem !important; font-weight: 500 !important; }
+.link-button .spof-tag { position: static; }
+.flow-layers { margin: 0; padding-left: 1.1rem; font-size: .76rem; }

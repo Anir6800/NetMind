@@ -90,6 +90,18 @@ Each router keeps its own view and the result is replayed on a timeline; when it
 * Playback: `1× = 10 ms of simulated time per real second`; speeds 0.1×–10×, pause, step to next event.
 * Events can be filtered by device, packet, layer and protocol and exported as CSV or JSON.
 
+## 5a. Protocol scenarios (`protocols.ts`)
+
+Each scenario is a ladder of messages; every message's delivery and delay come from the engine (`forward` + `pathMetrics` for its size) at the moment it is sent, so a fault injected mid-scenario shows its real consequence. Each ladder lists its own simplifications; in short: ICMP 2 s timeout; ARP 3 tries 1 s apart, cache 300 s; DHCP Discover retransmitted at 4 s / 8 s, lease 86400 s; DNS retry after 2 s twice, answer TTL 300 s then a local cache hit; TCP slow start (cwnd doubles per RTT), Tahoe-style reset, fixed RTO 1 s doubling, up to 3 retransmissions, no fast retransmit/SACK/receive window/Nagle; UDP no ACK; HTTP/1.1 single GET over TCP.
+
+## 5b. Critical-device analysis (`analysis.ts`)
+
+On the physical graph of up devices and up links (parallel links count separately): articulation points and bridges by Tarjan's low-link algorithm; "if X fails, N devices lose reachability" = devices that leave the largest connected group when X fails (a tie is reported as an equal split); betweenness by Brandes' algorithm counting shortest paths between end devices (hosts/servers) only, raw pair sums. Dependency view: upstream = shortest path to the busiest router/firewall (the core), downstream = devices lost if it fails, and the student's flows through it with the OSI layers that device handles.
+
+## 5c. Prepared labs
+
+`backend/app/services/templates.py` defines 25 prepared labs (campus, office, data centre, ISP, home, mesh, WAN, legacy hub LAN, a generated-complexity ladder, 6–50 devices), all built by the same deterministic builder and validated (schema, connected, unique IPs, ≤ 50 devices). `data/templates/*.json` are exported by `scripts/export_templates.py`; tests check the files match a fresh build and that sample host pairs are routable under static, RIP and OSPF.
+
 ## 6. Not modelled
 
 * Full vendor behaviour (Cisco/Juniper defaults, CLI, timers beyond those listed), spanning tree, VLANs, NAT, IPv6.

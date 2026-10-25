@@ -132,6 +132,7 @@ export type TrafficData = {
   forward: boolean; // student flow travels a -> b
   backward: boolean; // student flow (or its reply) travels b -> a
   showLabel?: boolean;
+  bridge?: string; // single-point-of-failure summary when this link is a bridge
 };
 
 function center(node: ReturnType<typeof useInternalNode>) {
@@ -146,7 +147,7 @@ function center(node: ReturnType<typeof useInternalNode>) {
 export const TrafficEdge = memo(function TrafficEdge({ id, source, target, data, selected }: EdgeProps) {
   const a = center(useInternalNode(source));
   const b = center(useInternalNode(target));
-  const { link, utilisation, forward, backward, showLabel } = data as TrafficData;
+  const { link, utilisation, forward, backward, showLabel, bridge } = data as TrafficData;
   const dots = useLinkDots(id, link.a.node_id);
   const path = `M ${a.x} ${a.y} L ${b.x} ${b.y}`;
   const down = link.state === "down";
@@ -182,6 +183,13 @@ export const TrafficEdge = memo(function TrafficEdge({ id, source, target, data,
           d="M -5 -4 L 4 0 L -5 4 z"
           transform={`translate(${mid.x} ${mid.y}) rotate(${forward ? angle : angle + 180})`}
         />
+      )}
+      {bridge && link.state !== "down" && (
+        <g className="bridge-mark" transform={`translate(${mid.x} ${mid.y + 12})`}>
+          <title>{bridge}</title>
+          <rect x={-15} y={-7} width={30} height={13} rx={6} />
+          <text y={3}>SPOF</text>
+        </g>
       )}
       {dots.map((dot) => {
         const x = a.x + (b.x - a.x) * dot.fraction;

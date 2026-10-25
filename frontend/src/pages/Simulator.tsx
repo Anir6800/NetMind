@@ -23,6 +23,8 @@ import { PacketInspector, PacketList, PlayerControls, RunLog } from "../features
 import { simulate } from "../sim/des";
 import { scenario, type Ladder, type ScenarioKind } from "../sim/protocols";
 import { LadderDiagram } from "../features/sim/ladder";
+import { criticalSummary } from "../sim/analysis";
+import { CriticalList, DependencyView, LinkImpact } from "../features/sim/critical";
 import { AiPanel, describeSuggestion } from "../features/sim/ai";
 import { applySuggestion, connect as connectDevices, freshSubnet, type Suggestion } from "../sim/edit";
 import { ConvergencePanel, LearnedTables, RouteTable, TraceroutePanel } from "../features/sim/tables";
@@ -152,8 +154,9 @@ function Studio() {
   }, [flowApi]);
 
   useEffect(() => {
-    if (!name && networks.data) setName(networks.data.find((item) => item.id === networkId)?.name ?? `Network ${networkId}`);
-  }, [name, networkId, networks.data]);
+    // Wait for a fresh list: a just-generated network is missing from the cached one.
+    if (!name && networks.data && !networks.isFetching) setName(networks.data.find((item) => item.id === networkId)?.name ?? `Network ${networkId}`);
+  }, [name, networkId, networks.data, networks.isFetching]);
 
   // A slow-motion run describes one network state; structural edits make it stale.
   const clearRun = () => setPlayback({ run: null, clock: 0, playing: false, selected: null });
@@ -184,19 +187,24 @@ function Studio() {
     return new Set([...reachability(topology, tables, primary.src)].filter(([, ok]) => !ok).map(([id]) => id));
   }, [byId, primary, tables, topology]);
 
+  // Articulation points and bridges, with "if this fails, N devices lose reachability".
+  const critical = useMemo(() => (topology ? criticalSummary(topology) : { spof: [], busiest: null }), [topology]);
+  const spof = useMemo(() => new Map(critical.spof.map((item) => [item.id, item.summary])), [critical]);
+
   const rfNodes = useMemo<Node[]>(() => {
     if (!topology) return [];
     return topology.nodes.map((node) => {
       const role = node.id === primary?.src ? "SRC" : node.id === primary?.dst ? "DST" : undefined;
       const lost = unreachable.has(node.id);
       let data = dataCache.current.get(node);
-      if (!data || data.role !== role || data.unreachable !== lost) {
-        data = { node, role, unreachable: lost };
+      const risk = spof.get(node.id);
+      if (!data || data.role !== role || data.unreachable !== lost || data.critical !== risk) {
+        data = { node, role, unreachable: lost, critical: risk };
         dataCache.current.set(node, data);
       }
       return { id: node.id, type: "device", position: { x: node.x ?? 0, y: node.y ?? 0 }, data, selected: selection.nodes.includes(node.id), measured: sizes[node.id] };
     });
-  }, [primary, selection.nodes, sizes, topology, unreachable]);
+  }, [primary, selection.nodes, sizes, spof, topology, unreachable]);
 
   const rfEdges = useMemo<Edge[]>(() => {
     if (!topology) return [];
@@ -216,13 +224,14 @@ function Studio() {
       const flow = direction.get(link.id) ?? { forward: false, backward: false };
       let data = edgeCache.current.get(link);
       const showLabel = hoverEdge === link.id;
-      if (!data || data.forward !== flow.forward || data.backward !== flow.backward || data.showLabel !== showLabel) {
-        data = { link, utilisation: link.utilisation_pct ?? 0, ...flow, showLabel };
+      const bridge = spof.get(link.id);
+      if (!data || data.forward !== flow.forward || data.backward !== flow.backward || data.showLabel !== showLabel || data.bridge !== bridge) {
+        data = { link, utilisation: link.utilisation_pct ?? 0, ...flow, showLabel, bridge };
         edgeCache.current.set(link, data);
       }
       return { id: link.id, source: link.a.node_id, target: link.b.node_id, type: "traffic", data, selected: selection.edges.includes(link.id) };
     });
-  }, [hoverEdge, results, selection.edges, topology]);
+  }, [hoverEdge, results, selection.edges, spof, topology]);
 
   // ---------- edits ----------
 
@@ -569,6 +578,7 @@ function Studio() {
                     Delete
                   </button>
                 </div>
+                <DependencyView topology={topology} protocol={protocol} device={focusNode.id} flows={flows} label={label} />
                 <form
                   className="connect-row"
                   onSubmit={(event) => {
@@ -595,6 +605,7 @@ function Studio() {
             ) : focusLink ? (
               <>
                 <LinkInspector link={focusLink} label={label} onChange={updateLink} key={focusLink.id} />
+                <LinkImpact topology={topology} link={focusLink.id} />
                 <div className="inspector-actions">
                   <button onClick={() => liveChange({ kind: focusLink.state === "down" ? "link-up" : "link-down", target: focusLink.id }, `Link ${focusLink.id} ${focusLink.state === "down" ? "restored" : "set down"}`)}>
                     {focusLink.state === "down" ? "Restore link" : "Set link down"}
@@ -609,6 +620,14 @@ function Studio() {
                 <p className="eyebrow">DEVICE LIBRARY</p>
                 <h2>Add devices</h2>
                 <Palette onAdd={(type) => addDevice(type)} full={topology.nodes.length >= MAX_DEVICES} />
+                <CriticalList
+                  summary={critical}
+                  label={label}
+                  onFocus={(kind, id) => {
+                    setFocus({ kind, id });
+                    if (kind === "node") flowApi.fitView({ nodes: [{ id }], duration: 400, maxZoom: 1.3 });
+                  }}
+                />
                 <p className="hint">Click to add at the centre, drag onto the canvas, or right-click empty canvas. Drag from a device's right handle to another device to connect. Shift+F10 opens the menu for the selected item.</p>
                 <Legend />
               </>
@@ -875,6 +894,7 @@ function Studio() {
               change={change}
               reachableNow={primaryResult?.reachable ?? false}
               label={label}
+              critical={{ articulation: critical.spof.filter((item) => item.kind === "device").map((item) => item.id), bridges: critical.spof.filter((item) => item.kind === "link").map((item) => item.id) }}
               onPreview={previewSuggestion}
             />
           )}

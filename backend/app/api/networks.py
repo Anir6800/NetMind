@@ -8,6 +8,7 @@ from sqlalchemy.orm import Session
 from app.db.session import get_session
 from app.schemas.network import Topology
 from app.services.networks import NetworksService
+from app.services.templates import TEMPLATES, summary
 
 router = APIRouter(prefix="/networks", tags=["networks"])
 
@@ -40,6 +41,16 @@ class GenerateRequest(BaseModel):
     form: dict | None = None
 
 
+class TemplateInfo(BaseModel):
+    id: str
+    label: str
+    category: str
+    description: str
+    device_count: int
+    protocol: Literal["static", "rip", "ospf"]
+    style: str
+
+
 class GeneratedNetwork(BaseModel):
     network: NetworkResponse
     topology: Topology
@@ -52,6 +63,11 @@ class GeneratedNetwork(BaseModel):
 @router.get("", response_model=list[NetworkResponse])
 def list_networks(session: Annotated[Session, Depends(get_session)]) -> list[NetworkResponse]:
     return NetworksService(session).list()
+
+
+@router.get("/templates", response_model=list[TemplateInfo])
+def list_templates() -> list[dict]:
+    return [summary(template) for template in TEMPLATES]
 
 
 @router.post("", response_model=NetworkResponse, status_code=201)

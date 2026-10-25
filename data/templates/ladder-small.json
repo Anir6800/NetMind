@@ -1,0 +1,391 @@
+{
+  "addressing_plan": "Complexity 1: small (prepared template) \u00b7 hierarchical \u00b7 OSPF",
+  "expected_baseline_paths": [],
+  "links": [
+    {
+      "a": {
+        "interface_id": "port-1",
+        "node_id": "router-1"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "router-2"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 1.0,
+      "id": "link-router-1-router-2",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-2",
+        "node_id": "router-1"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "switch-1"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 0.5,
+      "id": "link-router-1-switch-1",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-2",
+        "node_id": "router-2"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "switch-2"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 0.5,
+      "id": "link-router-2-switch-2",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-2",
+        "node_id": "switch-1"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "server-1"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-1-server-1",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-2",
+        "node_id": "switch-2"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "host-1"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-2-host-1",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-3",
+        "node_id": "switch-1"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "host-2"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-1-host-2",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-3",
+        "node_id": "switch-2"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "host-3"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-2-host-3",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-4",
+        "node_id": "switch-1"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "host-4"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-1-host-4",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-4",
+        "node_id": "switch-2"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "host-5"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-2-host-5",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    }
+  ],
+  "nodes": [
+    {
+      "acl": [],
+      "id": "router-1",
+      "interfaces": [
+        {
+          "address": "10.255.0.5/30",
+          "id": "port-1"
+        },
+        {
+          "address": "10.0.2.1/24",
+          "id": "port-2"
+        }
+      ],
+      "name": "R1",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "router",
+      "x": 900.0,
+      "y": 0.0
+    },
+    {
+      "acl": [],
+      "id": "router-2",
+      "interfaces": [
+        {
+          "address": "10.255.0.6/30",
+          "id": "port-1"
+        },
+        {
+          "address": "10.0.3.1/24",
+          "id": "port-2"
+        }
+      ],
+      "name": "R2",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "router",
+      "x": 1080.0,
+      "y": 0.0
+    },
+    {
+      "acl": [],
+      "id": "switch-1",
+      "interfaces": [
+        {
+          "address": "10.0.2.10/24",
+          "id": "port-1"
+        },
+        {
+          "address": "10.0.2.11/24",
+          "id": "port-2"
+        },
+        {
+          "address": "10.0.2.13/24",
+          "id": "port-3"
+        },
+        {
+          "address": "10.0.2.15/24",
+          "id": "port-4"
+        }
+      ],
+      "name": "SW1",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "switch",
+      "x": 900.0,
+      "y": 130.0
+    },
+    {
+      "acl": [],
+      "id": "switch-2",
+      "interfaces": [
+        {
+          "address": "10.0.3.10/24",
+          "id": "port-1"
+        },
+        {
+          "address": "10.0.3.11/24",
+          "id": "port-2"
+        },
+        {
+          "address": "10.0.3.13/24",
+          "id": "port-3"
+        },
+        {
+          "address": "10.0.3.15/24",
+          "id": "port-4"
+        }
+      ],
+      "name": "SW2",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "switch",
+      "x": 1080.0,
+      "y": 130.0
+    },
+    {
+      "acl": [],
+      "id": "server-1",
+      "interfaces": [
+        {
+          "address": "10.0.2.12/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "SRV1",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "server",
+      "x": 540.0,
+      "y": 260.0
+    },
+    {
+      "acl": [],
+      "id": "host-1",
+      "interfaces": [
+        {
+          "address": "10.0.3.12/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "PC1",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "host",
+      "x": 720.0,
+      "y": 260.0
+    },
+    {
+      "acl": [],
+      "id": "host-2",
+      "interfaces": [
+        {
+          "address": "10.0.2.14/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "PC2",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "host",
+      "x": 900.0,
+      "y": 260.0
+    },
+    {
+      "acl": [],
+      "id": "host-3",
+      "interfaces": [
+        {
+          "address": "10.0.3.14/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "PC3",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "host",
+      "x": 1080.0,
+      "y": 260.0
+    },
+    {
+      "acl": [],
+      "id": "host-4",
+      "interfaces": [
+        {
+          "address": "10.0.2.16/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "PC4",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "host",
+      "x": 1260.0,
+      "y": 260.0
+    },
+    {
+      "acl": [],
+      "id": "host-5",
+      "interfaces": [
+        {
+          "address": "10.0.3.16/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "PC5",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "host",
+      "x": 1440.0,
+      "y": 260.0
+    }
+  ],
+  "version": "v1"
+}

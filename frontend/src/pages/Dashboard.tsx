@@ -6,38 +6,19 @@ import {
   deleteNetwork,
   generateNetwork,
   getNetworks,
+  getTemplates,
   type NetworkForm,
 } from "../lib/api";
 
 const FORM_FIELDS = ["routers", "firewalls", "switches", "access_points", "hubs", "repeaters", "servers", "hosts"] as const;
 
-const templates = [
-  ["campus", "College campus"],
-  ["office", "Small office"],
-  ["enterprise", "Enterprise HQ"],
-  ["data-center", "Data centre"],
-  ["isp-backbone", "ISP backbone"],
-  ["home", "Smart home"],
-  ["wireless-mesh", "Wireless mesh"],
-  ["branch", "Branch WAN"],
-  ["hospital", "Hospital"],
-  ["school", "School lab"],
-  ["hotel", "Hotel Wi-Fi"],
-  ["factory", "Industrial plant"],
-  ["retail", "Retail chain"],
-  ["bank", "Bank network"],
-  ["cloud", "Hybrid cloud"],
-  ["iot", "IoT deployment"],
-  ["voip", "VoIP office"],
-  ["security", "Security lab"],
-  ["rip-lab", "RIP practice"],
-  ["ospf-lab", "OSPF multi-area"],
-] as const;
 
 export function Dashboard() {
   const navigate = useNavigate();
   const queryClient = useQueryClient();
   const networks = useQuery({ queryKey: ["networks"], queryFn: getNetworks });
+  const templateList = useQuery({ queryKey: ["templates"], queryFn: getTemplates });
+  const templates = templateList.data ?? [];
   const [name, setName] = useState("My network lab");
   const [category, setCategory] = useState("campus");
   const [protocol, setProtocol] = useState("ospf");
@@ -128,9 +109,9 @@ export function Dashboard() {
                   <label>
                     Lab type
                     <select value={category} onChange={(event) => setCategory(event.target.value)}>
-                      {templates.map(([id, label]) => (
-                        <option value={id} key={id}>
-                          {label}
+                      {templates.map((template) => (
+                        <option value={template.id} key={template.id}>
+                          {template.label}
                         </option>
                       ))}
                     </select>
@@ -236,30 +217,36 @@ export function Dashboard() {
       <section className="template-section">
         <div className="panel-heading">
           <div>
-            <p className="eyebrow">20 READY-MADE LABS</p>
-            <h2>Start from a 50-device topology</h2>
+            <p className="eyebrow">{templates.length} PREPARED LABS · NO AI</p>
+            <h2>Start from a prepared topology</h2>
           </div>
         </div>
         <div className="template-grid">
-          {templates.map(([id, label], index) => (
+          {templateList.isError && <p role="alert">Templates could not be loaded.</p>}
+          {templates.map((template, index) => (
             <button
-              key={id}
+              key={template.id}
               className="template-card"
+              title={template.description}
+              disabled={generate.isPending}
               onClick={() =>
                 generate.mutate({
-                  name: `${label} ${Date.now().toString().slice(-4)}`,
-                  category: id,
-                  device_count: 50,
-                  protocol: id === "rip-lab" ? "rip" : "ospf",
-                  prompt: `Create a 50 device ${label} network`,
+                  name: `${template.label} ${Date.now().toString().slice(-4)}`,
+                  category: template.id,
+                  device_count: template.device_count,
+                  protocol: template.protocol,
+                  prompt: "",
                 })
               }
             >
               <span className="template-number">
-                {String(index + 1).padStart(2, "0")}
+                {String(index + 1).padStart(2, "0")} · {template.category}
               </span>
-              <strong>{label}</strong>
-              <small>50 devices · {id === "rip-lab" ? "RIP" : "OSPF"}</small>
+              <strong>{template.label}</strong>
+              <small>{template.description}</small>
+              <small className="template-meta">
+                {template.device_count} devices · {template.protocol.toUpperCase()} · {template.style}
+              </small>
             </button>
           ))}
         </div>

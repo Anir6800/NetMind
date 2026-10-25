@@ -7,7 +7,8 @@ from sqlalchemy.orm import Session
 from app.integrations.nvidia_client import get_ai_client
 from app.repositories.networks import NetworksRepository
 from app.schemas.network import Topology
-from app.services.assistant import plan_network
+from app.services.assistant import Answer, plan_network
+from app.services.templates import TEMPLATE_BY_ID, build_template
 from app.services.topology_builder import build_topology, validate_lab
 
 
@@ -53,8 +54,14 @@ class NetworksService:
 
     def generate(self, name: str, device_count: int, category: str, protocol: str, prompt: str = "", form: dict | None = None):
         defaults = {"device_count": device_count, "protocol": protocol, "category": category}
-        spec, answer = plan_network(get_ai_client(), prompt, form, defaults)
-        topology = build_topology(spec, f"{category} · {spec.style} · {spec.protocol.upper()}")
+        template = TEMPLATE_BY_ID.get(category)
+        # Templates fix their own protocol/size; request protocol/device_count are ignored (spec + topology report the real ones).
+        if template and not prompt.strip() and form is None:
+            spec, answer = template["spec"], Answer(source="TEMPLATE", answered_by="Prepared template (no AI)")
+            topology = build_template(template)
+        else:
+            spec, answer = plan_network(get_ai_client(), prompt, form, defaults)
+            topology = build_topology(spec, f"{category} · {spec.style} · {spec.protocol.upper()}")
         problems = validate_lab(topology)
         if problems:
             raise ValueError("Generated network rejected: " + "; ".join(problems))

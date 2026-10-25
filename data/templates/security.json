@@ -1,0 +1,1066 @@
+{
+  "addressing_plan": "Security lab (prepared template) \u00b7 hierarchical \u00b7 OSPF",
+  "expected_baseline_paths": [],
+  "links": [
+    {
+      "a": {
+        "interface_id": "port-1",
+        "node_id": "router-1"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "router-2"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 1.0,
+      "id": "link-router-1-router-2",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-2",
+        "node_id": "router-2"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "router-3"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 2.0,
+      "id": "link-router-2-router-3",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-2",
+        "node_id": "router-3"
+      },
+      "b": {
+        "interface_id": "port-2",
+        "node_id": "router-1"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 3.0,
+      "id": "link-router-3-router-1",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-3",
+        "node_id": "router-1"
+      },
+      "b": {
+        "interface_id": "port-3",
+        "node_id": "router-3"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 1.0,
+      "id": "link-router-1-router-3",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-4",
+        "node_id": "router-1"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "firewall-1"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 1.0,
+      "id": "link-router-1-firewall-1",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-3",
+        "node_id": "router-2"
+      },
+      "b": {
+        "interface_id": "port-2",
+        "node_id": "firewall-1"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 1.0,
+      "id": "link-router-2-firewall-1",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-4",
+        "node_id": "router-2"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "firewall-2"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 1.0,
+      "id": "link-router-2-firewall-2",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-4",
+        "node_id": "router-3"
+      },
+      "b": {
+        "interface_id": "port-2",
+        "node_id": "firewall-2"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 1.0,
+      "id": "link-router-3-firewall-2",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-5",
+        "node_id": "router-3"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "firewall-3"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 1.0,
+      "id": "link-router-3-firewall-3",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-5",
+        "node_id": "router-1"
+      },
+      "b": {
+        "interface_id": "port-2",
+        "node_id": "firewall-3"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 1.0,
+      "id": "link-router-1-firewall-3",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-3",
+        "node_id": "firewall-1"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "switch-1"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 0.5,
+      "id": "link-firewall-1-switch-1",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-6",
+        "node_id": "router-1"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "switch-2"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 0.5,
+      "id": "link-router-1-switch-2",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-5",
+        "node_id": "router-2"
+      },
+      "b": {
+        "interface_id": "port-2",
+        "node_id": "switch-2"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.5,
+      "id": "link-router-2-switch-2",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-6",
+        "node_id": "router-2"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "switch-3"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 0.5,
+      "id": "link-router-2-switch-3",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-6",
+        "node_id": "router-3"
+      },
+      "b": {
+        "interface_id": "port-2",
+        "node_id": "switch-3"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.5,
+      "id": "link-router-3-switch-3",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-7",
+        "node_id": "router-3"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "switch-4"
+      },
+      "capacity_mbps": 1000,
+      "delay_ms": 0.5,
+      "id": "link-router-3-switch-4",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-7",
+        "node_id": "router-1"
+      },
+      "b": {
+        "interface_id": "port-2",
+        "node_id": "switch-4"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.5,
+      "id": "link-router-1-switch-4",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-2",
+        "node_id": "switch-1"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "server-1"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-1-server-1",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-3",
+        "node_id": "switch-1"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "server-2"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-1-server-2",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-4",
+        "node_id": "switch-1"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "server-3"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-1-server-3",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-3",
+        "node_id": "switch-2"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "host-1"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-2-host-1",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-3",
+        "node_id": "switch-3"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "host-2"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-3-host-2",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-3",
+        "node_id": "switch-4"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "host-3"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-4-host-3",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-4",
+        "node_id": "switch-2"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "host-4"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-2-host-4",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-4",
+        "node_id": "switch-3"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "host-5"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-3-host-5",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-4",
+        "node_id": "switch-4"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "host-6"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-4-host-6",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-5",
+        "node_id": "switch-2"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "host-7"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-2-host-7",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    },
+    {
+      "a": {
+        "interface_id": "port-5",
+        "node_id": "switch-3"
+      },
+      "b": {
+        "interface_id": "port-1",
+        "node_id": "host-8"
+      },
+      "capacity_mbps": 100,
+      "delay_ms": 0.2,
+      "id": "link-switch-3-host-8",
+      "jitter_ms": 0.0,
+      "length_m": null,
+      "loss_pct": 0.0,
+      "ospf_cost": null,
+      "queue_packets": 64,
+      "state": "up",
+      "utilisation_pct": 0.0
+    }
+  ],
+  "nodes": [
+    {
+      "acl": [],
+      "id": "router-1",
+      "interfaces": [
+        {
+          "address": "10.255.0.5/30",
+          "id": "port-1"
+        },
+        {
+          "address": "10.255.0.14/30",
+          "id": "port-2"
+        },
+        {
+          "address": "10.255.0.17/30",
+          "id": "port-3"
+        },
+        {
+          "address": "10.255.0.21/30",
+          "id": "port-4"
+        },
+        {
+          "address": "10.255.0.41/30",
+          "id": "port-5"
+        },
+        {
+          "address": "10.0.3.1/24",
+          "id": "port-6"
+        },
+        {
+          "address": "10.0.5.2/24",
+          "id": "port-7"
+        }
+      ],
+      "name": "R1",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "router",
+      "x": 810.0,
+      "y": 0.0
+    },
+    {
+      "acl": [],
+      "id": "router-2",
+      "interfaces": [
+        {
+          "address": "10.255.0.6/30",
+          "id": "port-1"
+        },
+        {
+          "address": "10.255.0.9/30",
+          "id": "port-2"
+        },
+        {
+          "address": "10.255.0.25/30",
+          "id": "port-3"
+        },
+        {
+          "address": "10.255.0.29/30",
+          "id": "port-4"
+        },
+        {
+          "address": "10.0.3.2/24",
+          "id": "port-5"
+        },
+        {
+          "address": "10.0.4.1/24",
+          "id": "port-6"
+        }
+      ],
+      "name": "R2",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "router",
+      "x": 990.0,
+      "y": 0.0
+    },
+    {
+      "acl": [],
+      "id": "router-3",
+      "interfaces": [
+        {
+          "address": "10.255.0.10/30",
+          "id": "port-1"
+        },
+        {
+          "address": "10.255.0.13/30",
+          "id": "port-2"
+        },
+        {
+          "address": "10.255.0.18/30",
+          "id": "port-3"
+        },
+        {
+          "address": "10.255.0.33/30",
+          "id": "port-4"
+        },
+        {
+          "address": "10.255.0.37/30",
+          "id": "port-5"
+        },
+        {
+          "address": "10.0.4.2/24",
+          "id": "port-6"
+        },
+        {
+          "address": "10.0.5.1/24",
+          "id": "port-7"
+        }
+      ],
+      "name": "R3",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "router",
+      "x": 1170.0,
+      "y": 0.0
+    },
+    {
+      "acl": [],
+      "id": "firewall-1",
+      "interfaces": [
+        {
+          "address": "10.255.0.22/30",
+          "id": "port-1"
+        },
+        {
+          "address": "10.255.0.26/30",
+          "id": "port-2"
+        },
+        {
+          "address": "10.0.2.1/24",
+          "id": "port-3"
+        }
+      ],
+      "name": "FW1",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "firewall",
+      "x": 810.0,
+      "y": 130.0
+    },
+    {
+      "acl": [],
+      "id": "firewall-2",
+      "interfaces": [
+        {
+          "address": "10.255.0.30/30",
+          "id": "port-1"
+        },
+        {
+          "address": "10.255.0.34/30",
+          "id": "port-2"
+        }
+      ],
+      "name": "FW2",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "firewall",
+      "x": 990.0,
+      "y": 130.0
+    },
+    {
+      "acl": [],
+      "id": "firewall-3",
+      "interfaces": [
+        {
+          "address": "10.255.0.38/30",
+          "id": "port-1"
+        },
+        {
+          "address": "10.255.0.42/30",
+          "id": "port-2"
+        }
+      ],
+      "name": "FW3",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "firewall",
+      "x": 1170.0,
+      "y": 130.0
+    },
+    {
+      "acl": [],
+      "id": "switch-1",
+      "interfaces": [
+        {
+          "address": "10.0.2.10/24",
+          "id": "port-1"
+        },
+        {
+          "address": "10.0.2.11/24",
+          "id": "port-2"
+        },
+        {
+          "address": "10.0.2.13/24",
+          "id": "port-3"
+        },
+        {
+          "address": "10.0.2.15/24",
+          "id": "port-4"
+        }
+      ],
+      "name": "SW1",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "switch",
+      "x": 720.0,
+      "y": 260.0
+    },
+    {
+      "acl": [],
+      "id": "switch-2",
+      "interfaces": [
+        {
+          "address": "10.0.3.10/24",
+          "id": "port-1"
+        },
+        {
+          "address": "10.0.3.11/24",
+          "id": "port-2"
+        },
+        {
+          "address": "10.0.3.12/24",
+          "id": "port-3"
+        },
+        {
+          "address": "10.0.3.14/24",
+          "id": "port-4"
+        },
+        {
+          "address": "10.0.3.16/24",
+          "id": "port-5"
+        }
+      ],
+      "name": "SW2",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "switch",
+      "x": 900.0,
+      "y": 260.0
+    },
+    {
+      "acl": [],
+      "id": "switch-3",
+      "interfaces": [
+        {
+          "address": "10.0.4.10/24",
+          "id": "port-1"
+        },
+        {
+          "address": "10.0.4.11/24",
+          "id": "port-2"
+        },
+        {
+          "address": "10.0.4.12/24",
+          "id": "port-3"
+        },
+        {
+          "address": "10.0.4.14/24",
+          "id": "port-4"
+        },
+        {
+          "address": "10.0.4.16/24",
+          "id": "port-5"
+        }
+      ],
+      "name": "SW3",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "switch",
+      "x": 1080.0,
+      "y": 260.0
+    },
+    {
+      "acl": [],
+      "id": "switch-4",
+      "interfaces": [
+        {
+          "address": "10.0.5.10/24",
+          "id": "port-1"
+        },
+        {
+          "address": "10.0.5.11/24",
+          "id": "port-2"
+        },
+        {
+          "address": "10.0.5.12/24",
+          "id": "port-3"
+        },
+        {
+          "address": "10.0.5.14/24",
+          "id": "port-4"
+        }
+      ],
+      "name": "SW4",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "switch",
+      "x": 1260.0,
+      "y": 260.0
+    },
+    {
+      "acl": [],
+      "id": "server-1",
+      "interfaces": [
+        {
+          "address": "10.0.2.12/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "SRV1",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "server",
+      "x": 90.0,
+      "y": 390.0
+    },
+    {
+      "acl": [],
+      "id": "server-2",
+      "interfaces": [
+        {
+          "address": "10.0.2.14/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "SRV2",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "server",
+      "x": 270.0,
+      "y": 390.0
+    },
+    {
+      "acl": [],
+      "id": "server-3",
+      "interfaces": [
+        {
+          "address": "10.0.2.16/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "SRV3",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "server",
+      "x": 450.0,
+      "y": 390.0
+    },
+    {
+      "acl": [],
+      "id": "host-1",
+      "interfaces": [
+        {
+          "address": "10.0.3.13/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "PC1",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "host",
+      "x": 630.0,
+      "y": 390.0
+    },
+    {
+      "acl": [],
+      "id": "host-2",
+      "interfaces": [
+        {
+          "address": "10.0.4.13/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "PC2",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "host",
+      "x": 810.0,
+      "y": 390.0
+    },
+    {
+      "acl": [],
+      "id": "host-3",
+      "interfaces": [
+        {
+          "address": "10.0.5.13/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "PC3",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "host",
+      "x": 990.0,
+      "y": 390.0
+    },
+    {
+      "acl": [],
+      "id": "host-4",
+      "interfaces": [
+        {
+          "address": "10.0.3.15/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "PC4",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "host",
+      "x": 1170.0,
+      "y": 390.0
+    },
+    {
+      "acl": [],
+      "id": "host-5",
+      "interfaces": [
+        {
+          "address": "10.0.4.15/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "PC5",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "host",
+      "x": 1350.0,
+      "y": 390.0
+    },
+    {
+      "acl": [],
+      "id": "host-6",
+      "interfaces": [
+        {
+          "address": "10.0.5.15/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "PC6",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "host",
+      "x": 1530.0,
+      "y": 390.0
+    },
+    {
+      "acl": [],
+      "id": "host-7",
+      "interfaces": [
+        {
+          "address": "10.0.3.17/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "PC7",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "host",
+      "x": 1710.0,
+      "y": 390.0
+    },
+    {
+      "acl": [],
+      "id": "host-8",
+      "interfaces": [
+        {
+          "address": "10.0.4.17/24",
+          "id": "port-1"
+        }
+      ],
+      "name": "PC8",
+      "processing_delay_ms": 0.2,
+      "routing_protocol": "ospf",
+      "state": "up",
+      "type": "host",
+      "x": 1890.0,
+      "y": 390.0
+    }
+  ],
+  "version": "v1"
+}

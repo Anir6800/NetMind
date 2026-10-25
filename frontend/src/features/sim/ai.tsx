@@ -47,6 +47,7 @@ export function AiPanel({
   change,
   reachableNow,
   label,
+  critical,
   onPreview,
 }: {
   topology: Topology;
@@ -56,6 +57,7 @@ export function AiPanel({
   change: { title: string; before: Topology; after: Topology; target?: string } | null;
   reachableNow: boolean;
   label: (id: string) => string;
+  critical: { articulation: string[]; bridges: string[] };
   onPreview: (item: Suggestion) => void;
 }) {
   const status = useQuery({ queryKey: ["ai-status"], queryFn: getAiStatus, refetchInterval: 30_000 });
@@ -114,8 +116,8 @@ export function AiPanel({
           source: flow.src,
           destination: flow.dst,
           reachable_after: reachableNow,
-          articulation_points: [],
-          bridges: [],
+          articulation_points: critical.articulation.slice(0, 50),
+          bridges: critical.bridges.slice(0, 200),
         }),
       );
     } catch (reason) {

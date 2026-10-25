@@ -144,3 +144,11 @@ export async function deleteNetwork(id: number): Promise<void> {
   if (!response.ok) throw new Error("Network delete failed");
 }
 
+
+export type TemplateInfo = { id: string; label: string; category: string; description: string; device_count: number; protocol: "static" | "rip" | "ospf"; style: string };
+
+export async function getTemplates(): Promise<TemplateInfo[]> {
+  const response = await fetch("/networks/templates");
+  if (!response.ok) throw new Error("Templates unavailable");
+  return response.json() as Promise<TemplateInfo[]>;
+}
