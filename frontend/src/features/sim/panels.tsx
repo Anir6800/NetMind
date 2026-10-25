@@ -2,6 +2,7 @@ import { useState } from "react";
 import type { TopologyLink, TopologyNode } from "../../lib/api";
 import { DEVICE_LAYER, PROCESSING_MS, ospfCost, propagationMs, type FlowResult, type Impact } from "../../sim/engine";
 import { DEVICE_TYPES, DeviceSymbol, TYPE_BADGE } from "./canvas";
+import { Icon } from "../../components/icons/Icon";
 
 const ms = (value: number) => `${value.toFixed(3)} ms`;
 
@@ -293,6 +294,12 @@ export function Legend() {
     <div className="legend-box">
       <strong>Legend</strong>
       <ul>
+        <li className="legend-layers">
+          <span data-layer="l1"><DeviceSymbol type="hub" size={16} /> L1 hub, repeater</span>
+          <span data-layer="l2"><DeviceSymbol type="switch" size={16} /> L2 switch, AP</span>
+          <span data-layer="l3"><DeviceSymbol type="router" size={16} /> L3 router, firewall</span>
+          <span data-layer="l7"><DeviceSymbol type="host" size={16} /> L4–L7 PC, server</span>
+        </li>
         <li>
           <i className="swatch swatch--path" /> student flow (moving dots show direction)
         </li>
@@ -303,16 +310,18 @@ export function Legend() {
           <i className="swatch swatch--warm" /> congested ≥ 70% · <i className="swatch swatch--hot" /> ≥ 90%
         </li>
         <li>
-          <i className="swatch swatch--down" /> link down (carries nothing)
+          <span className="edge-label edge-label--down">
+            <Icon name="link-down" size={16} filled /> DOWN
+          </span>{" "}
+          link carries nothing · <span className="edge-label edge-label--degraded"><Icon name="warning" size={16} filled /> DEGRADED</span>
         </li>
         <li>
-          <i className="dot dot--up" /> up · <i className="dot dot--down" /> powered down · <i className="dot dot--unreach" /> unreachable
+          <i className="dot dot--up" /> up · <span className="state-chip state-chip--down legend-chip"><Icon name="power" size={16} /> DOWN</span> struck-through device · <i className="dot dot--unreach" /> unreachable
         </li>
         <li>
-          <span className="spof-tag">SPOF</span> single point of failure
+          <span className="spof-tag legend-chip"><Icon name="critical" size={16} filled /> SPOF</span> single point of failure (hover for impact)
         </li>
       </ul>
     </div>
   );
 }
-

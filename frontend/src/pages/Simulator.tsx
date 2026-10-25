@@ -16,7 +16,7 @@ import "@xyflow/react/dist/style.css";
 import { useQuery } from "@tanstack/react-query";
 import { Link, useParams, useSearchParams } from "react-router-dom";
 import { downloadJson, getNetworks, getTopology, saveNetwork, type Topology, type TopologyLink, type TopologyNode } from "../lib/api";
-import { DEVICE_TYPES, DeviceSymbol, edgeTypes, nodeTypes, type DeviceData, type TrafficData } from "../features/sim/canvas";
+import { DEVICE_TYPES, DeviceSymbol, LAYER_OF, edgeTypes, nodeTypes, type DeviceData, type TrafficData } from "../features/sim/canvas";
 import { ImpactCard, Legend, LinkInspector, NodeInspector, Palette } from "../features/sim/panels";
 import { set as setPlayback, usePlayback } from "../features/sim/playback";
 import { PacketInspector, PacketList, PlayerControls, RunLog } from "../features/sim/player";
@@ -63,6 +63,7 @@ const SHORT: Record<string, string> = {
   "access-point": "AP",
 };
 const MAX_DEVICES = 50;
+const MINIMAP_COLOR = { l1: "#fbbf24", l2: "#2dd4bf", l3: "#a78bfa", l7: "#60a5fa" } as const;
 const clock = () => new Date().toLocaleTimeString([], { hour12: false });
 
 export function Simulator() {
@@ -586,7 +587,7 @@ function Studio() {
           >
             <Background gap={20} size={1} />
             <Controls showInteractive={false} />
-            <MiniMap pannable zoomable nodeStrokeWidth={3} nodeColor="#2dd4bf" maskColor="rgba(9, 12, 18, 0.65)" bgColor="#141a25" ariaLabel="Network minimap" />
+            <MiniMap pannable zoomable nodeBorderRadius={12} nodeStrokeWidth={0} nodeColor={(item) => MINIMAP_COLOR[LAYER_OF[(item.data as DeviceData).node.type] ?? "l3"]} maskColor="rgba(9, 12, 18, 0.65)" bgColor="#141a25" ariaLabel="Network minimap" />
           </ReactFlow>
           {!topology.nodes.length && (
             <div className="empty-canvas">

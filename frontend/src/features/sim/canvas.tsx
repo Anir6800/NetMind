@@ -11,6 +11,8 @@ import {
 import type { TopologyLink, TopologyNode } from "../../lib/api";
 import { ipOf, labelOf } from "../../sim/engine";
 import { useLinkDots } from "./playback";
+import { Icon, type IconSize } from "../../components/icons/Icon";
+import { DEVICE_ICON } from "../../components/icons/registry";
 
 export const DEVICE_TYPES = ["router", "switch", "hub", "repeater", "host", "server", "firewall", "access-point"];
 export const TYPE_BADGE: Record<string, string> = {
@@ -24,65 +26,19 @@ export const TYPE_BADGE: Record<string, string> = {
   server: "Server",
 };
 
-// Simplified line-art versions of the classic network diagram symbols.
-const SYMBOLS: Record<string, React.ReactNode> = {
-  router: (
-    <>
-      <circle cx="12" cy="12" r="8.5" />
-      <path d="M9 9 5.5 5.5m0 0v3m0-3h3M15 15l3.5 3.5m0 0v-3m0 3h-3M15 9l3.5-3.5m-3.5 0h3.5v3.5M9 15l-3.5 3.5m3.5 0H5.5V15" />
-    </>
-  ),
-  switch: (
-    <>
-      <rect x="3" y="6" width="18" height="12" rx="2" />
-      <path d="M7 10h9m0 0-2-2m2 2-2 2M17 14H8m0 0 2-2m-2 2 2 2" />
-    </>
-  ),
-  hub: (
-    <>
-      <rect x="3" y="7" width="18" height="10" rx="2" />
-      <path d="M7 12h.01M10.5 12h.01M14 12h.01M17.5 12h.01M12 3v4m0 10v4" />
-    </>
-  ),
-  repeater: (
-    <>
-      <path d="M4 12h3l2-5 3 10 2-5h6" />
-      <path d="M18 9l3 3-3 3" />
-    </>
-  ),
-  host: (
-    <>
-      <rect x="3" y="4" width="18" height="12" rx="1.5" />
-      <path d="M9 20h6M12 16v4" />
-    </>
-  ),
-  server: (
-    <>
-      <rect x="6" y="3" width="12" height="18" rx="1.5" />
-      <path d="M9 7h6M9 10h6M9 14h.01M12 14h3" />
-    </>
-  ),
-  firewall: (
-    <>
-      <rect x="3" y="5" width="18" height="14" rx="1" />
-      <path d="M3 9.7h18M3 14.3h18M9 5v4.7M15 5v4.7M6 9.7v4.6M12 9.7v4.6M18 9.7v4.6M9 14.3V19M15 14.3V19" />
-    </>
-  ),
-  "access-point": (
-    <>
-      <path d="M12 13v8M8 21h8" />
-      <path d="M8.5 9.5a5 5 0 0 1 7 0M5.5 6.5a9 9 0 0 1 13 0" />
-      <circle cx="12" cy="12.5" r="1" />
-    </>
-  ),
+export const LAYER_OF: Record<string, "l1" | "l2" | "l3" | "l7"> = {
+  hub: "l1",
+  repeater: "l1",
+  switch: "l2",
+  "access-point": "l2",
+  router: "l3",
+  firewall: "l3",
+  host: "l7",
+  server: "l7",
 };
 
-export function DeviceSymbol({ type }: { type: string }) {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" className="device-symbol">
-      {SYMBOLS[type] ?? SYMBOLS.host}
-    </svg>
-  );
+export function DeviceSymbol({ type, size = 20, filled = true, label }: { type: string; size?: IconSize; filled?: boolean; label?: string }) {
+  return <Icon name={DEVICE_ICON[type] ?? "host"} size={size} filled={filled} label={label} className="device-symbol" />;
 }
 
 export type DeviceData = {
@@ -95,29 +51,36 @@ export type DeviceData = {
 export const DeviceNode = memo(function DeviceNode({ data, selected }: NodeProps) {
   const { node, role, critical, unreachable } = data as DeviceData;
   const down = node.state === "down";
+  const state = down ? "powered down" : unreachable ? "unreachable from the source" : "up";
   return (
     <div
       className={`device-card${down ? " is-down" : ""}${unreachable ? " is-unreachable" : ""}${selected ? " is-selected" : ""}`}
       data-type={node.type}
+      data-layer={LAYER_OF[node.type] ?? "l3"}
+      title={`${labelOf(node)} · ${TYPE_BADGE[node.type] ?? node.type} · ${state}`}
     >
       <Handle type="target" position={Position.Top} className="device-handle device-handle--target" />
       <span className="device-icon">
-        <DeviceSymbol type={node.type} />
+        <DeviceSymbol type={node.type} filled={!down} label={TYPE_BADGE[node.type] ?? node.type} />
       </span>
       <span className="device-text">
         <strong>{labelOf(node)}</strong>
-        <small>{ipOf(node)}</small>
+        <small>
+          {ipOf(node)}
+          {node.interfaces.length > 1 && ` · ${node.interfaces.length} ports`}
+        </small>
       </span>
       <span className="device-badge">{TYPE_BADGE[node.type] ?? node.type}</span>
-      <i
-        className="status-dot"
-        role="img"
-        aria-label={down ? "powered down" : unreachable ? "unreachable from source" : "up"}
-      />
+      <i className="status-dot" role="img" aria-label={state} />
+      {down && (
+        <span className="state-chip state-chip--down">
+          <Icon name="power" size={16} /> DOWN
+        </span>
+      )}
       {role && <span className={`role-tag role-tag--${role.toLowerCase()}`}>{role}</span>}
       {critical && (
-        <span className="spof-tag" title={critical}>
-          SPOF
+        <span className="spof-tag" title={critical} aria-label={`Single point of failure: ${critical}`}>
+          <Icon name="critical" size={16} filled /> SPOF
         </span>
       )}
       <Handle type="source" position={Position.Right} className="device-handle" />
@@ -201,12 +164,22 @@ export const TrafficEdge = memo(function TrafficEdge({ id, source, target, data,
           </g>
         );
       })}
-      {(selected || showLabel) && (
+      {(selected || showLabel || link.state !== "up") && (
         <EdgeLabelRenderer>
-          <div className="edge-label" style={{ transform: `translate(-50%, -50%) translate(${mid.x}px, ${mid.y}px)` }}>
-            {link.capacity_mbps} Mbps · {link.length_m != null ? `${link.length_m} m` : `${link.delay_ms} ms`}
-            {utilisation > 0 && ` · ${Math.round(utilisation)}%`}
-            {link.state !== "up" && ` · ${link.state.toUpperCase()}`}
+          <div
+            className={`edge-label edge-label--${link.state}${selected || showLabel ? " is-open" : ""}`}
+            style={{ transform: `translate(-50%, -50%) translate(${mid.x}px, ${mid.y}px)` }}
+          >
+            <Icon name={link.state === "down" ? "link-down" : link.state === "degraded" ? "warning" : "link"} size={16} filled />
+            {selected || showLabel ? (
+              <>
+                {link.capacity_mbps} Mbps · {link.length_m != null ? `${link.length_m} m` : `${link.delay_ms} ms`}
+                {utilisation > 0 && ` · ${Math.round(utilisation)}%`}
+                {link.state !== "up" && ` · ${link.state.toUpperCase()}`}
+              </>
+            ) : (
+              link.state.toUpperCase()
+            )}
           </div>
         </EdgeLabelRenderer>
       )}

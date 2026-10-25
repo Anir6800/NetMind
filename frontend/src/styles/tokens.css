@@ -21,6 +21,10 @@
   --nm-warning: #f59e0b;
   --nm-danger: #ef4444;
   --nm-danger-text: #f87171;
+  --nm-layer-l1: #fbbf24;
+  --nm-layer-l2: #2dd4bf;
+  --nm-layer-l3: #a78bfa;
+  --nm-layer-l7: #60a5fa;
   --nm-radius-control: 10px;
   --nm-radius-panel: 14px;
   --nm-font-ui: Inter, "Segoe UI", system-ui, sans-serif;
@@ -43,4 +47,8 @@
   --nm-link-idle: #94a3b8;
   --nm-success-text: #15803d;
   --nm-danger-text: #b91c1c;
+  --nm-layer-l1: #b45309;
+  --nm-layer-l2: #0f766e;
+  --nm-layer-l3: #6d28d9;
+  --nm-layer-l7: #1d4ed8;
 }
