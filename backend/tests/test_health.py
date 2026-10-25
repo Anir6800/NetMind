@@ -7,4 +7,7 @@ def test_health() -> None:
     response = TestClient(app).get("/health")
 
     assert response.status_code == 200
-    assert response.json() == {"status": "ok", "environment": "development"}
+    body = response.json()
+    assert body["status"] == "ok"
+    assert body["database"] in {"ok", "down"}
+    assert body["ai"] == "LOCAL_RULES"  # tests force fixture mode

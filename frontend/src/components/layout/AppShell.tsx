@@ -1,6 +1,7 @@
 import { signOut } from "firebase/auth";
 import { Link, NavLink, Outlet, useMatch, useNavigate, useSearchParams } from "react-router-dom";
 import { ThemeToggle } from "../ui/ThemeToggle";
+import { SystemDot } from "../ui/SystemDot";
 import { auth } from "../../lib/firebase";
 
 const panels = [
@@ -34,6 +35,7 @@ export function AppShell() {
         <Outlet />
       </main>
       <nav className="bottom-pill" aria-label="Main navigation">
+        <SystemDot />
         <NavLink to="/" end className="pill-item">
           <span aria-hidden="true">◫</span> Networks
         </NavLink>
