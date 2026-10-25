@@ -432,3 +432,11 @@ h1, h2, h3 { margin: 0; }
 .save-state { white-space: nowrap; }
 @media (max-width: 1280px) { .studio-bar .count-chip, .studio-bar .planner-notes { display: none; } }
 @media (max-width: 800px) { .studio-bar { flex-wrap: wrap; } }
+/* White-on-red chips use the darker red for WCAG AA contrast. */
+.spof-tag, .state-chip--down, .edge-label--down, .danger-solid, .drawer .danger-solid { background: var(--nm-danger-strong); }
+.edge-label--down { border-color: var(--nm-danger-strong); }
+.bridge-mark rect { fill: var(--nm-danger-strong); opacity: 1; }
+/* Light theme: darker text tones on white for WCAG AA. */
+[data-theme="light"] .manual-button, [data-theme="light"] .template-meta, [data-theme="light"] .import-button { color: #0f766e !important; }
+[data-theme="light"] .sim-badge, [data-theme="light"] .mode-badge { color: #92400e; }
+[data-theme="light"] .role-tag--dst { color: #fff; }

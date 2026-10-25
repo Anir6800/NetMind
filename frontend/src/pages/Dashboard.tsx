@@ -94,7 +94,7 @@ export function Dashboard() {
             AI.
           </p>
         </div>
-        <span className="mode-badge">SIMULATED · REALISTIC TIMING</span>
+        <span className="mode-badge">SIMULATED · CALCULATED TIMING</span>
       </header>
       <section className="dashboard-grid">
         <article className="panel generate-panel">

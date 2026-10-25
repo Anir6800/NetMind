@@ -20,6 +20,7 @@
   --nm-success-text: #4ade80;
   --nm-warning: #f59e0b;
   --nm-danger: #ef4444;
+  --nm-danger-strong: #b91c1c; /* background for white text: 6.5:1 */
   --nm-danger-text: #f87171;
   --nm-layer-l1: #fbbf24;
   --nm-layer-l2: #2dd4bf;
