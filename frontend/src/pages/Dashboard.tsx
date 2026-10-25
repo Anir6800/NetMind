@@ -14,6 +14,7 @@ import {
   type NetworkForm,
 } from "../lib/api";
 import { LESSONS } from "../sim/lessons";
+import { Icon } from "../components/icons/Icon";
 
 const FORM_FIELDS = ["routers", "firewalls", "switches", "access_points", "hubs", "repeaters", "servers", "hosts"] as const;
 
@@ -113,6 +114,7 @@ export function Dashboard() {
               type="button"
               onClick={() => createBlank.mutate(name.trim())}
             >
+              <Icon name="add" size={20} />
               {createBlank.isPending
                 ? "Creating blank canvas…"
                 : "Create blank network — build it myself"}
@@ -200,6 +202,7 @@ export function Dashboard() {
               disabled={generate.isPending}
               type="submit"
             >
+              <Icon name={generate.isPending ? "loading" : mode === "form" ? "tune" : "ai"} size={20} filled />
               {generate.isPending ? "Building topology…" : mode === "form" ? "Build from form and open" : "Generate with AI and open"}
             </button>
             {(generate.isError || createBlank.isError) && (
@@ -218,7 +221,21 @@ export function Dashboard() {
             <span>{networks.data?.length ?? 0}</span>
           </div>
           {networks.isLoading ? (
-            <p>Loading networks…</p>
+            <div className="saved-list" aria-busy="true" aria-label="Loading networks">
+              {[0, 1, 2].map((item) => (
+                <div key={item} className="skeleton skeleton--row" />
+              ))}
+            </div>
+          ) : networks.isError ? (
+            <div className="state-card state-card--error state-card--inline" role="alert">
+              <Icon name="error" size={32} />
+              <p>Saved networks could not be loaded. Is the backend running? Check the status dot.</p>
+            </div>
+          ) : !networks.data?.length ? (
+            <div className="state-card state-card--inline">
+              <Icon name="cable" size={32} />
+              <p>No saved networks yet — create a blank one, pick a prepared lab or start a guided lesson.</p>
+            </div>
           ) : (
             <div className="saved-list">
               {networks.data?.map((network) => (
@@ -228,11 +245,11 @@ export function Dashboard() {
                     <small>Topology {network.topology_version}</small>
                   </button>
                   <span className="saved-actions">
-                    <button onClick={() => duplicate.mutate(network.id)} aria-label={`Duplicate ${network.name}`}>
-                      Duplicate
+                    <button onClick={() => duplicate.mutate(network.id)} aria-label={`Duplicate ${network.name}`} title="Duplicate">
+                      <Icon name="add" size={16} /> Duplicate
                     </button>
-                    <button onClick={() => exportNetwork(network.id, network.name)} aria-label={`Export ${network.name}`}>
-                      Export
+                    <button onClick={() => exportNetwork(network.id, network.name)} aria-label={`Export ${network.name}`} title="Export as JSON">
+                      <Icon name="download" size={16} /> Export
                     </button>
                   </span>
                   <button
@@ -242,8 +259,9 @@ export function Dashboard() {
                       confirm(`Delete ${network.name}?`) &&
                       remove.mutate(network.id)
                     }
+                    title="Delete"
                   >
-                    ×
+                    <Icon name="delete" size={20} />
                   </button>
                 </div>
               ))}
@@ -258,7 +276,7 @@ export function Dashboard() {
             <h2>Learn step by step</h2>
           </div>
           <label className="manual-button import-button">
-            Import network (.json)
+            <Icon name="upload" size={20} /> Import network (.json)
             <input type="file" accept="application/json,.json" hidden onChange={(event) => event.target.files?.[0] && importFile(event.target.files[0])} />
           </label>
         </div>
@@ -286,7 +304,12 @@ export function Dashboard() {
           </div>
         </div>
         <div className="template-grid">
-          {templateList.isError && <p role="alert">Templates could not be loaded.</p>}
+          {templateList.isError && (
+            <p role="alert" className="form-error">
+              <Icon name="error" size={20} /> Prepared labs could not be loaded — is the backend running?
+            </p>
+          )}
+          {templateList.isLoading && [0, 1, 2, 3, 4].map((item) => <div key={item} className="skeleton skeleton--card" />)}
           {templates.map((template, index) => (
             <button
               key={template.id}

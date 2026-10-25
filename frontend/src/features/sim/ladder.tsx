@@ -1,4 +1,5 @@
 import type { Ladder } from "../../sim/protocols";
+import { Icon } from "../../components/icons/Icon";
 
 const COLUMN = 170;
 const ROW = 48;
@@ -18,7 +19,7 @@ export function LadderDiagram({ ladder, label, onClose }: { ladder: Ladder; labe
           <h2 className={ladder.ok ? "delta-better" : "delta-worse"}>{ladder.outcome}</h2>
         </div>
         <button className="ghost-button" onClick={onClose} aria-label="Close sequence diagram">
-          ✕
+          <Icon name="close" size={20} />
         </button>
       </header>
       <div className="ladder-scroll">

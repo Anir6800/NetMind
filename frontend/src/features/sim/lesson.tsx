@@ -1,4 +1,5 @@
 import { useMemo, useState } from "react";
+import { Icon } from "../../components/icons/Icon";
 import type { Topology } from "../../lib/api";
 import type { Protocol } from "../../sim/engine";
 import { LESSONS, lessonProgress, type LessonState } from "../../sim/lessons";
@@ -38,7 +39,7 @@ export function LessonPanel(props: {
           {open ? "–" : "+"}
         </button>
         <button className="ghost-button" onClick={props.onClose} aria-label="Leave lesson">
-          ✕
+          <Icon name="close" size={20} />
         </button>
       </header>
       {open && (

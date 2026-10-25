@@ -27,6 +27,17 @@
   --nm-layer-l7: #60a5fa;
   --nm-radius-control: 10px;
   --nm-radius-panel: 14px;
+  --nm-radius-pill: 999px;
+  --nm-space-1: 4px;
+  --nm-space-2: 8px;
+  --nm-space-3: 12px;
+  --nm-space-4: 16px;
+  --nm-space-5: 24px;
+  --nm-shadow-card: 0 6px 18px rgba(0, 0, 0, .35);
+  --nm-shadow-float: 0 18px 50px rgba(0, 0, 0, .45);
+  --nm-motion-fast: 120ms;
+  --nm-motion-med: 220ms;
+  --nm-ease: cubic-bezier(.2, .8, .2, 1);
   --nm-font-ui: Inter, "Segoe UI", system-ui, sans-serif;
   --nm-font-data: "JetBrains Mono", Consolas, ui-monospace, monospace;
 }

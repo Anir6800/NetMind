@@ -26,6 +26,7 @@ import { LadderDiagram } from "../features/sim/ladder";
 import { criticalSummary } from "../sim/analysis";
 import { CriticalList, DependencyView, LinkImpact } from "../features/sim/critical";
 import { LessonPanel } from "../features/sim/lesson";
+import { Icon } from "../components/icons/Icon";
 import { AiPanel, describeSuggestion } from "../features/sim/ai";
 import { applySuggestion, connect as connectDevices, freshSubnet, type Suggestion } from "../sim/edit";
 import { ConvergencePanel, LearnedTables, RouteTable, TraceroutePanel } from "../features/sim/tables";
@@ -458,12 +459,25 @@ function Studio() {
     }
   }
 
-  if (topologyQuery.isLoading) return <section className="panel">Loading simulator…</section>;
+  if (topologyQuery.isLoading)
+    return (
+      <section className="studio-skeleton" aria-busy="true" aria-label="Loading network">
+        <div className="skeleton skeleton--bar" />
+        <div className="skeleton-body">
+          <div className="skeleton skeleton--canvas" />
+          <div className="skeleton skeleton--drawer" />
+        </div>
+      </section>
+    );
   if (topologyQuery.isError || !topology)
     return (
-      <section className="panel">
-        <p role="alert">Network could not be loaded.</p>
-        <Link to="/">Return to networks</Link>
+      <section className="state-card state-card--error" role="alert">
+        <Icon name="error" size={48} />
+        <h2>This network could not be loaded</h2>
+        <p>It may have been deleted, or the backend is not running (check the status dot in the pill).</p>
+        <Link to="/" className="primary-button">
+          <Icon name="back" size={20} /> Back to networks
+        </Link>
       </section>
     );
 
@@ -481,8 +495,8 @@ function Studio() {
   return (
     <div className="studio" onKeyDown={onKeyDown}>
       <header className="studio-bar">
-        <Link to="/" className="back-link" aria-label="Back to networks">
-          ←
+        <Link to="/" className="back-link" aria-label="Back to networks" title="Back to networks">
+          <Icon name="back" size={20} />
         </Link>
         <input className="network-name" value={name} onChange={(event) => setName(event.target.value)} aria-label="Network name" />
         <span className="count-chip">
@@ -519,19 +533,20 @@ function Studio() {
         </form>
         <div className="bar-actions">
           <button className="ghost-button" onClick={undo} disabled={!history.past.length} title="Undo (Ctrl+Z)">
-            ↶ Undo
+            <Icon name="undo" size={20} /> Undo
           </button>
           <button className="ghost-button" onClick={redo} disabled={!history.future.length} title="Redo (Ctrl+Y)">
-            ↷ Redo
+            <Icon name="redo" size={20} /> Redo
           </button>
-          <span className="save-state" role="status">
+          <span className={`save-state${saveState.startsWith("Saved") ? " is-ok" : saveState.includes("failed") ? " is-error" : ""}`} role="status">
+            {(saveState || dirty) && <Icon name={saveState.startsWith("Saved") ? "ok" : saveState.includes("failed") ? "error" : saveState ? "loading" : "edit"} size={16} />}
             {saveState || (dirty ? "Unsaved changes" : "")}
           </span>
           <button className="ghost-button" onClick={() => downloadJson(`${name || "network"}.netmind.json`, { name, topology })} title="Download this network as JSON">
-            Export
+            <Icon name="download" size={20} /> Export
           </button>
           <button className="primary-button" onClick={persist}>
-            Save
+            <Icon name="save" size={20} filled /> Save
           </button>
         </div>
       </header>
@@ -591,8 +606,9 @@ function Studio() {
           </ReactFlow>
           {!topology.nodes.length && (
             <div className="empty-canvas">
-              <strong>Blank network</strong>
-              <p>Drag a device from the Canvas drawer, or right-click here → Add device.</p>
+              <Icon name="router" size={48} />
+              <strong>No devices yet — drag a router here</strong>
+              <p>Open the Canvas drawer and drag a device onto this space, or right-click here → Add device.</p>
             </div>
           )}
           <div className="player-dock">
@@ -657,7 +673,7 @@ function Studio() {
         <aside className="drawer" aria-label={`${panel} panel`}>
           {panel === "canvas" && (focusNode || focusLink) && (
             <button className="ghost-button back-to-library" onClick={closeInspector}>
-              ← Device library
+              <Icon name="back" size={20} /> Device library
             </button>
           )}
           {panel === "canvas" &&
@@ -1002,55 +1018,70 @@ function Studio() {
           style={{ left: menu.x, top: menu.y }}
           role="menu"
           aria-label="Canvas actions"
-          onKeyDown={(event) => event.key === "Escape" && setMenu(null)}
+          onKeyDown={(event) => {
+            if (event.key === "Escape") setMenu(null);
+            // Up/Down/Home/End move between menu items.
+            const items = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("[role=menuitem]:not(:disabled)")];
+            const index = items.indexOf(document.activeElement as HTMLButtonElement);
+            const next = { ArrowDown: index + 1, ArrowUp: index - 1, Home: 0, End: items.length - 1 }[event.key];
+            if (next === undefined) return;
+            event.preventDefault();
+            items[(next + items.length) % items.length]?.focus();
+          }}
         >
           {menuNode && (
             <>
               <strong>
-                {labelOf(menuNode)} · {menuNode.type}
+                <DeviceSymbol type={menuNode.type} size={16} /> {labelOf(menuNode)} · {menuNode.type}
               </strong>
               <button role="menuitem" autoFocus onClick={() => (liveChange({ kind: menuNode.state === "down" ? "node-up" : "node-down", target: menuNode.id }, `${labelOf(menuNode)} ${menuNode.state === "down" ? "restored" : "powered down"}`), setMenu(null))}>
-                {menuNode.state === "down" ? "Restore (power on)" : "Power down"}
+                <Icon name="power" size={20} /> {menuNode.state === "down" ? "Restore (power on)" : "Power down"}
               </button>
+              <hr role="separator" />
               <button role="menuitem" onClick={() => (setFocus({ kind: "node", id: menuNode.id, rename: true }), setPanel("canvas"), setMenu(null))}>
-                Rename
+                <Icon name="edit" size={20} /> Rename
               </button>
               <button role="menuitem" onClick={() => (setFocus({ kind: "node", id: menuNode.id }), setPanel("canvas"), setMenu(null))}>
-                Edit interfaces / IP
+                <Icon name="tune" size={20} /> Edit interfaces / IP
               </button>
+              <hr role="separator" />
               <button role="menuitem" onClick={() => (setEndpoint("src", menuNode.id), setMenu(null))}>
-                Set as source
+                <Icon name="upload" size={20} /> Set as source
               </button>
               <button role="menuitem" onClick={() => (setEndpoint("dst", menuNode.id), setMenu(null))}>
-                Set as destination
+                <Icon name="download" size={20} /> Set as destination
               </button>
               <button role="menuitem" onClick={() => (setFocus({ kind: "node", id: menuNode.id }), setPanel("tables"), setMenu(null))}>
-                Show routing / ARP / MAC tables
+                <Icon name="tables" size={20} /> Show routing / ARP / MAC tables
               </button>
+              <hr role="separator" />
               <button role="menuitem" className="danger-menu" onClick={() => (remove([menuNode.id], []), setMenu(null))}>
-                Delete device
+                <Icon name="delete" size={20} /> Delete device
               </button>
             </>
           )}
           {menuLink && (
             <>
               <strong>
-                {label(menuLink.a.node_id)} ↔ {label(menuLink.b.node_id)}
+                <Icon name="link" size={16} /> {label(menuLink.a.node_id)} ↔ {label(menuLink.b.node_id)}
               </strong>
               <button role="menuitem" autoFocus onClick={() => (liveChange({ kind: menuLink.state === "down" ? "link-up" : "link-down", target: menuLink.id }, `Link ${menuLink.id} ${menuLink.state === "down" ? "restored" : "set down"}`), setMenu(null))}>
-                {menuLink.state === "down" ? "Restore link" : "Set link down"}
+                <Icon name={menuLink.state === "down" ? "link" : "link-down"} size={20} /> {menuLink.state === "down" ? "Restore link" : "Set link down"}
               </button>
               <button role="menuitem" onClick={() => (setFocus({ kind: "link", id: menuLink.id }), setPanel("canvas"), setMenu(null))}>
-                Edit bandwidth / delay / loss / jitter / queue
+                <Icon name="tune" size={20} /> Edit bandwidth / delay / loss / jitter / queue
               </button>
+              <hr role="separator" />
               <button role="menuitem" className="danger-menu" onClick={() => (remove([], [menuLink.id]), setMenu(null))}>
-                Delete link
+                <Icon name="delete" size={20} /> Delete link
               </button>
             </>
           )}
           {menu.kind === "pane" && (
             <>
-              <strong>Add device here</strong>
+              <strong>
+                <Icon name="add" size={16} /> Add device here
+              </strong>
               {DEVICE_TYPES.map((type, index) => (
                 <button
                   role="menuitem"

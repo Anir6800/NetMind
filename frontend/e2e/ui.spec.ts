@@ -123,7 +123,7 @@ test("inspector has a way back to the device library", async ({ page, request })
     const palette = page.getByRole("group", { name: "Device library" });
     await page.locator('.react-flow__node[data-id="r1"]').click();
     await expect(palette).toHaveCount(0);
-    await page.getByRole("button", { name: "← Device library" }).click();
+    await page.getByRole("button", { name: "Device library" }).click();
     await expect(palette).toBeVisible();
     await page.locator('.react-flow__node[data-id="r2"]').click();
     await page.locator(".react-flow__pane").click({ position: { x: 20, y: 20 } });

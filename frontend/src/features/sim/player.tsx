@@ -2,6 +2,7 @@ import { useMemo, useState } from "react";
 import { toCsv, type SimRun } from "../../sim/des";
 import { DEVICE_LAYER } from "../../sim/engine";
 import { SIM_MS_PER_SECOND, SPEEDS, set, stepToNextEvent, usePlayback } from "./playback";
+import { Icon } from "../../components/icons/Icon";
 
 const ms = (value: number) => value.toFixed(4);
 
@@ -13,14 +14,16 @@ export function PlayerControls() {
     <div className="player" aria-label="Slow-motion player">
       <div className="player-row">
         <button onClick={() => set({ playing: !playing, clock: clock >= run.endTime ? 0 : clock })} aria-label={playing ? "Pause" : "Play"}>
-          {playing ? "❚❚ Pause" : "▶ Play"}
+          <Icon name={playing ? "pause" : "play"} size={20} filled /> {playing ? "Pause" : "Play"}
         </button>
         <button onClick={stepToNextEvent} title="Jump to the next event and pause">
-          Step ⏭
+          <Icon name="step" size={20} /> Step
         </button>
-        <button onClick={() => set({ clock: 0, playing: false })}>⟲ Reset</button>
-        <button className="player-close" onClick={() => set({ run: null, clock: 0, playing: false, selected: null })} aria-label="Close player">
-          ✕
+        <button onClick={() => set({ clock: 0, playing: false })}>
+          <Icon name="replay" size={20} /> Reset
+        </button>
+        <button className="player-close" onClick={() => set({ run: null, clock: 0, playing: false, selected: null })} aria-label="Close player" title="Close player">
+          <Icon name="close" size={20} />
         </button>
         <label className="speed">
           Speed
@@ -43,7 +46,7 @@ export function PlayerControls() {
         onChange={(event) => set({ clock: Number(event.target.value), playing: false })}
       />
       <p className="virtual-clock">
-        t = {clock.toFixed(3)} ms <small>/ {run.endTime.toFixed(3)} ms · 1× = {SIM_MS_PER_SECOND} ms per real second</small>
+        <Icon name="clock" size={20} /> t = {clock.toFixed(3)} ms <small>/ {run.endTime.toFixed(3)} ms · 1× = {SIM_MS_PER_SECOND} ms per real second</small>
       </p>
       {current && (
         <p className="current-event" aria-live="polite">

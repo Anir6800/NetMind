@@ -49,7 +49,7 @@ export function ImpactCard({
           <h2>{title}</h2>
         </div>
         <button className="ghost-button" onClick={onClose} aria-label="Close impact panel">
-          ✕
+          <Icon name="close" size={20} />
         </button>
       </header>
       <table className="impact-table">
