@@ -4,7 +4,7 @@ import { login, watchConsole } from "./helpers";
 test("prepared templates open without AI and show single points of failure", async ({ page, request }) => {
   const problems = watchConsole(page);
   await login(page);
-  const cards = page.locator(".template-card");
+  const cards = page.locator(".template-grid .template-card");
   await expect(cards).toHaveCount(25);
   await cards.filter({ hasText: "Small office" }).click();
   await page.waitForURL(/\/simulator\/\d+/);
