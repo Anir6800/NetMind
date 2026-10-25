@@ -341,3 +341,14 @@ h1, h2, h3 { margin: 0; }
 .lesson-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: .75rem; margin-top: 1rem; }
 @media (max-width: 1100px) { .lesson-grid { grid-template-columns: repeat(2, 1fr); } }
 .import-button { display: inline-flex; align-items: center; min-height: 2.4rem; padding: 0 .9rem; border-radius: 999px; cursor: pointer; color: var(--nm-primary-hover); font-weight: 600; }
+
+/* ---------- tutorial ---------- */
+.tour { position: fixed; inset: 0; z-index: 100; pointer-events: none; }
+.tour-dim { position: fixed; inset: 0; background: rgba(4, 6, 10, .7); pointer-events: auto; }
+.tour-spot { position: fixed; border: 2px solid var(--nm-accent); border-radius: 12px; box-shadow: 0 0 0 9999px rgba(4, 6, 10, .7), 0 0 24px var(--nm-accent); }
+.tour-card { position: fixed; width: min(380px, calc(100vw - 24px)); display: grid; gap: .5rem; padding: 1rem; border: 1px solid var(--nm-accent); border-radius: 1rem; background: var(--nm-surface); box-shadow: 0 20px 60px rgba(0, 0, 0, .6); pointer-events: auto; }
+.tour-card h2 { font-size: 1.05rem; }
+.tour-card p { margin: 0; line-height: 1.55; font-size: .88rem; }
+.tour-actions { display: flex; gap: .4rem; align-items: center; }
+.tour-actions span { flex: 1; }
+.tour-button { font-weight: 700; color: var(--nm-accent); }

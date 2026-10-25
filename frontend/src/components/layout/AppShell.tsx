@@ -2,6 +2,8 @@ import { signOut } from "firebase/auth";
 import { Link, NavLink, Outlet, useMatch, useNavigate, useSearchParams } from "react-router-dom";
 import { ThemeToggle } from "../ui/ThemeToggle";
 import { SystemDot } from "../ui/SystemDot";
+import { useCallback, useState } from "react";
+import { Tour } from "./Tour";
 import { auth } from "../../lib/firebase";
 
 const panels = [
@@ -32,6 +34,8 @@ export function AppShell() {
   const inSimulator = useMatch("/simulator/:networkId");
   const [params] = useSearchParams();
   const networkId = inSimulator?.params.networkId ?? lastNetwork();
+  const [replay, setReplay] = useState(0);
+  const replayed = useCallback(() => setReplay(0), []);
   const active = inSimulator ? (params.get("panel") ?? "simulate") : "";
   return (
     <div className={`app-shell${inSimulator ? " app-shell--studio" : ""}`}>
@@ -41,6 +45,7 @@ export function AppShell() {
       <main id="content" className="page-content">
         <Outlet />
       </main>
+      <Tour replay={replay} onReplayed={replayed} />
       <nav className="bottom-pill" aria-label="Main navigation">
         <SystemDot />
         <NavLink to="/" end className="pill-item">
@@ -63,6 +68,9 @@ export function AppShell() {
           ),
         )}
         <span className="pill-divider" aria-hidden="true" />
+        <button className="icon-button tour-button" onClick={() => setReplay(Date.now())} aria-label="Show the tutorial" title="Tutorial">
+          ?
+        </button>
         <ThemeToggle />
         <button
           className="pill-item pill-signout"

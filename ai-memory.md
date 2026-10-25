@@ -262,7 +262,7 @@
 
 ## NM-SIM-CONTINUE — Finish NetMind as a student network simulator
 
-- Status: IN_PROGRESS
+- Status: COMPLETE
 - Started: 2026-10-24
 - Scope: Step 0 reconcile, then WP1 live canvas, WP2 discrete-event engine, WP3 routing/convergence, WP5 AI, WP6 UI, WP9 partial, WP4 protocol ladders, WP7 templates/criticality, WP8 save/share/lessons, final WP9.
 - Step 0 (reconcile): the "12 uncommitted files" from the cut-off session were already committed as `46dbc3b` (same 12 files: README, ai-memory, networks API/service, nvidia_client, AppShell, Dashboard, Simulator, global.css, run.ps1, tests). Working tree clean; no stale IN_PROGRESS entry for that work (its entry above says COMPLETE). Checkpoint SHA = `46dbc3b`; no new checkpoint commit was needed.
@@ -300,4 +300,7 @@
 - WP7 commit: `e236399`. Status dot (user request mid-task) commit `ff8c458`: /health reports database + AI mode; pill dot red/yellow/blue/green; e2e status-dot.spec.ts.
 - WP8 DONE 2026-10-25: workflow-built + reviewed `sim/lessons.ts` (5 lessons, checks over LessonState, shortcut tests after review found two lessons completable without the lesson's point), `POST /networks/import` (validate_lab except connectivity, readable 422, unique name " (2)"), `POST /networks/{id}/duplicate` ("(copy)", "(copy 2)"), `tests/test_import_export.py`. UI: dashboard guided labs (start = template network + lesson panel), Duplicate/Export per saved network, Import .json, simulator Export, autosaved drafts in localStorage with restore/discard banner (cleared on Save), lesson panel. Fixed: pill links dropped other query params (lesson closed when switching drawers).
   - Observed: backend 177 passed; unit 127/127; Playwright lessons spec 2/2 (find-the-spof loads the office template ids, progresses 0/4→1/4→2/4→3/4→complete; UI export → import topology deep-equal).
-- Next: final WP9 (full suite, docs, final report).
+- WP8 commit: `dab986b`; e2e selector fix `dfaecc9`.
+- Tutorial (user request mid-task) DONE 2026-10-25: `components/layout/Tour.tsx` spotlight tour (dashboard 7 steps, simulator 12 steps covering create/drag/connect, right-click real-time before/after, simulate, preview, slow motion, tables/convergence, logs, AI, save/undo/export, find). Auto-runs once per browser for new users, Skip / Back / Next / Esc / arrow keys, "?" in the pill replays it. Simulator steps open the matching drawer. E2E helper marks the tour as seen; `e2e/tour.spec.ts` covers it.
+- FINAL WP9 (2026-10-25): backend 177 passed, ruff clean; frontend unit 127/127; build passed (only the existing >500 kB chunk warning); Playwright 14/14 (13 specs files) against the running stack with LIVE AI; 50 devices/61 links fps 60.2–60.4; `run.ps1 -Check` on the running stack reports idempotent "already running". In the last full run the LIVE model returned malformed JSON for Suggest and the server correctly fell back to the labelled local planner.
+- Status: NM-SIM-CONTINUE COMPLETE. Known limits: see README / docs/sim_model.md "Not modelled"; lesson tcp-retransmit cannot verify the "same fault" mid-scenario (uses a live link-down instead); spanning tree, VLANs, NAT, collisions and full TCP not modelled; 25 templates use one deterministic builder (layout styles differ, not hand-drawn).
