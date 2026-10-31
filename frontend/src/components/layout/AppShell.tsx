@@ -1,12 +1,10 @@
-import { signOut } from "firebase/auth";
-import { Link, NavLink, Outlet, useMatch, useNavigate, useSearchParams } from "react-router-dom";
+import { Link, NavLink, Outlet, useMatch, useSearchParams } from "react-router-dom";
 import { ThemeToggle } from "../ui/ThemeToggle";
 import { SystemDot } from "../ui/SystemDot";
 import { KeyboardEvent, useCallback, useLayoutEffect, useRef, useState } from "react";
 import { Icon } from "../icons/Icon";
 import type { IconName } from "../icons/registry";
 import { Tour } from "./Tour";
-import { auth } from "../../lib/firebase";
 
 const panels: [string, string, IconName][] = [
   ["canvas", "Canvas", "canvas"],
@@ -42,7 +40,6 @@ function withPanel(current: URLSearchParams | null, panel: string) {
 }
 
 export function AppShell() {
-  const navigate = useNavigate();
   const inSimulator = useMatch("/simulator/:networkId");
   const [params] = useSearchParams();
   const networkId = inSimulator?.params.networkId ?? lastNetwork();
@@ -98,16 +95,6 @@ export function AppShell() {
           <Icon name="help" size={20} />
         </button>
         <ThemeToggle />
-        <button
-          className="pill-item pill-signout"
-          title="Sign out"
-          onClick={async () => {
-            await signOut(auth);
-            navigate("/login");
-          }}
-        >
-          <Icon name="logout" size={20} /> Sign out
-        </button>
       </nav>
     </div>
   );

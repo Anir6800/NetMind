@@ -1,14 +1,12 @@
 import { expect, type APIRequestContext, type Page } from "@playwright/test";
 import { lab } from "../src/sim/testkit";
 
-// These specs need the local stack (API on 8000 + Firebase Auth emulator on 9099): run.ps1 first.
+// These specs need the local API on port 8000: run.ps1 first.
 
 export async function login(page: Page, { tour = false } = {}) {
   // The first-visit tutorial would cover the UI under test; it has its own spec.
   if (!tour) await page.addInitScript(() => ["dashboard", "studio"].forEach((name) => localStorage.setItem(`netmind-tour-${name}-done`, "1")));
-  await page.goto("/login");
-  await page.getByRole("button", { name: "Enter simulator" }).click();
-  await page.waitForURL((url) => !url.pathname.startsWith("/login"));
+  await page.goto("/");
 }
 
 export async function createLab(request: APIRequestContext): Promise<number> {

@@ -1,0 +1,17 @@
+services:
+  - type: web
+    name: netmind
+    runtime: docker
+    plan: free
+    healthCheckPath: /health
+    envVars:
+      - key: NETMIND_ENVIRONMENT
+        value: production
+      - key: NETMIND_DATABASE_URL
+        fromDatabase:
+          name: netmind-db
+          property: connectionString
+
+databases:
+  - name: netmind-db
+    plan: free

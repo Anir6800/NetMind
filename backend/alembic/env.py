@@ -1,9 +1,14 @@
+import os
+
 from sqlalchemy import engine_from_config, pool
 
 from alembic import context
+from app.core.config import get_settings
 from app.db.models import Base
 
 config = context.config
+if os.environ.get("NETMIND_DATABASE_URL"):
+    config.set_main_option("sqlalchemy.url", get_settings().database_url.replace("%", "%%"))
 target_metadata = Base.metadata
 
 

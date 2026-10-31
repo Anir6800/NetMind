@@ -1,0 +1,11 @@
+.git
+.venv
+frontend/node_modules
+frontend/dist
+backend/__pycache__
+**/__pycache__
+.env
+.env.*
+!.env.example
+logs
+presentation-package

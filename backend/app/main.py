@@ -1,6 +1,9 @@
+from pathlib import Path
 from typing import Annotated
 
 from fastapi import Depends, FastAPI
+from fastapi.responses import FileResponse
+from fastapi.staticfiles import StaticFiles
 from sqlalchemy import text
 
 from app.api import ai, audit, copilot, events, incidents, networks, recovery, telemetry
@@ -36,3 +39,15 @@ def health() -> dict[str, str]:
 @app.get("/me")
 def me(claims: Annotated[dict, Depends(verify_token)]) -> dict:
     return {"uid": claims.get("uid"), "role": claims["role"]}
+
+
+frontend = Path(__file__).resolve().parents[2] / "frontend" / "dist"
+if frontend.is_dir():
+    app.mount("/assets", StaticFiles(directory=frontend / "assets"), name="assets")
+
+    @app.get("/{path:path}", include_in_schema=False)
+    def frontend_app(path: str):
+        candidate = (frontend / path).resolve()
+        if candidate.is_relative_to(frontend) and candidate.is_file():
+            return FileResponse(candidate)
+        return FileResponse(frontend / "index.html")
