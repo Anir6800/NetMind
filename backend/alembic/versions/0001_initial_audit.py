@@ -16,7 +16,9 @@ def upgrade():
         sa.Column("payload", sa.String(), nullable=False),
         sa.Column("created_at", sa.DateTime(timezone=True), server_default=sa.func.now(), nullable=False),
     )
-    if op.get_bind().dialect.name == "postgresql":
+    if (op.get_bind().dialect.name == "postgresql" and op.get_bind().execute(
+        sa.text("SELECT 1 FROM pg_roles WHERE rolname = 'netmind_app'")
+    ).scalar()):
         op.execute("GRANT SELECT, INSERT ON TABLE audit_events TO netmind_app")
         op.execute("GRANT USAGE, SELECT ON SEQUENCE audit_events_id_seq TO netmind_app")
 
