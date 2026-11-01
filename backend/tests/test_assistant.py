@@ -113,6 +113,13 @@ def test_overview_works_without_a_change_and_falls_back() -> None:
     assert topology.links[0].id in answer.explanation
 
 
+def test_overview_accepts_grounded_network_counts() -> None:
+    topology = build_topology(NetworkSpec(routers=3, switches=4, servers=2, hosts=11))
+    reply = json.dumps({"root_cause": "No fault shown", "affected_layers": [], "explanation": f"There are {len(topology.nodes)} devices and {len(topology.links)} links.", "timing": ""})
+    answer = explain_overview(provider(reply), OverviewRequest(topology=topology, protocol="ospf"))
+    assert answer.source == "NVIDIA"
+
+
 def test_explain_rejects_invented_numbers() -> None:
     reply = json.dumps({"root_cause": "l3 failed", "affected_layers": [], "explanation": "Delay rose to 42.5 ms.", "timing": "converged in 3.7 s"})
     answer = explain(provider(reply), facts())
