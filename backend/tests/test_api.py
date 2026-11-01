@@ -55,6 +55,16 @@ def test_generates_and_persists_fifty_device_student_topology(monkeypatch) -> No
     get_settings.cache_clear()
 
 
+def test_generate_reuses_name_with_unique_suffix() -> None:
+    payload = {"name": "My network lab", "category": "campus", "device_count": 8, "protocol": "ospf", "form": {"routers": 2, "switches": 2, "servers": 1, "hosts": 3}}
+    with client() as api:
+        first = api.post("/networks/generate", json=payload)
+        second = api.post("/networks/generate", json=payload)
+        assert first.status_code == second.status_code == 201
+        assert first.json()["network"]["name"] == "My network lab"
+        assert second.json()["network"]["name"] == "My network lab (2)"
+
+
 def test_creates_empty_manual_topology() -> None:
     with client() as api:
         response = api.post("/networks", json={"name": "Blank lab", "topology": {"version": "v1", "addressing_plan": "Not configured", "nodes": [], "links": [], "expected_baseline_paths": []}})

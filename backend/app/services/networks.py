@@ -39,14 +39,15 @@ class NetworksService:
     def unique_name(self, name: str, suffix: str, first: str | None = None) -> str:
         """name, then name+first, then name+suffix.format(n) for n = 2.. until no network uses it."""
         taken = set(self.repository.session.scalars(select(Network.name)))
+        name = name[:100]
         if name not in taken:
             return name
-        if first is not None and name + first not in taken:
-            return name + first
+        if first is not None and name[:100 - len(first)] + first not in taken:
+            return name[:100 - len(first)] + first
         n = 2
-        while name + suffix.format(n) in taken:
+        while name[:100 - len(suffix.format(n))] + suffix.format(n) in taken:
             n += 1
-        return name + suffix.format(n)
+        return name[:100 - len(suffix.format(n))] + suffix.format(n)
 
     def import_network(self, name: str, topology: Topology):
         # Students may export unfinished labs, so only connectivity is waived.
@@ -93,4 +94,4 @@ class NetworksService:
         problems = validate_lab(topology)
         if problems:
             raise ValueError("Generated network rejected: " + "; ".join(problems))
-        return self.create(name, topology), topology, spec, answer
+        return self.create(self.unique_name(name, " ({})"), topology), topology, spec, answer
