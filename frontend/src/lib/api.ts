@@ -102,6 +102,7 @@ export async function getAiStatus(): Promise<{ mode: "LIVE" | "LOCAL_RULES"; ans
 
 export type Explanation = Answered & { root_cause: string; affected_layers: string[]; explanation: string; timing: string };
 export const explainChange = (facts: unknown) => post<Explanation>("/ai/explain", facts, "Explanation failed");
+export const explainOverview = (facts: unknown) => post<Explanation>("/ai/overview", facts, "Explanation failed");
 
 export type SuggestionList = Answered & { suggestions: import("../sim/edit").Suggestion[] };
 export const suggestChanges = (request: unknown) => post<SuggestionList>("/ai/suggest", request, "Suggestions failed");

@@ -4,8 +4,10 @@ from app.core.config import Settings
 from app.integrations.nvidia_client import NvidiaClient
 from app.services.assistant import (
     ExplainRequest,
+    OverviewRequest,
     SuggestRequest,
     explain,
+    explain_overview,
     local_suggestions,
     plan_network,
     suggest,
@@ -97,6 +99,18 @@ def test_explain_accepts_grounded_answer() -> None:
     reply = json.dumps({"root_cause": "l3 failed", "affected_layers": ["L1", "L3"], "explanation": "Delay rose from 6.325 ms to 14.97 ms via r3; TTL 61.", "timing": "OSPF converged in 206.9 ms"})
     answer = explain(provider(reply), facts())
     assert answer.source == "NVIDIA"
+
+
+def test_overview_works_without_a_change_and_falls_back() -> None:
+    topology = build_topology(NetworkSpec(routers=2, switches=2, servers=1, hosts=3))
+    from app.schemas.network import LinkState
+
+    topology.links[0].state = LinkState.DOWN
+    request = OverviewRequest(topology=topology, protocol="ospf", bridges=[topology.links[0].id], question="What is the problem?")
+    answer = explain_overview(provider(TimeoutError()), request)
+    assert answer.source == "LOCAL_RULES"
+    assert topology.links[0].id in answer.root_cause
+    assert topology.links[0].id in answer.explanation
 
 
 def test_explain_rejects_invented_numbers() -> None:

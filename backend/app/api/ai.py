@@ -6,9 +6,11 @@ from app.services.assistant import (
     LOCAL_LABEL,
     ExplainRequest,
     Explanation,
+    OverviewRequest,
     Suggestions,
     SuggestRequest,
     explain,
+    explain_overview,
     suggest,
 )
 
@@ -32,6 +34,11 @@ def status() -> AiStatus:
 @router.post("/explain", response_model=Explanation)
 def explain_change(request: ExplainRequest) -> Explanation:
     return explain(get_ai_client(), request)
+
+
+@router.post("/overview", response_model=Explanation)
+def overview(request: OverviewRequest) -> Explanation:
+    return explain_overview(get_ai_client(), request)
 
 
 @router.post("/suggest", response_model=Suggestions)

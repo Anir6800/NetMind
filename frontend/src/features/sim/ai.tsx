@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
-import { explainChange, getAiStatus, suggestChanges, type Answered, type Explanation, type SuggestionList, type Topology } from "../../lib/api";
+import { explainChange, explainOverview, getAiStatus, suggestChanges, type Answered, type Explanation, type SuggestionList, type Topology } from "../../lib/api";
 import { converge } from "../../sim/convergence";
 import type { Suggestion } from "../../sim/edit";
 import type { FlowResult, Impact, Protocol } from "../../sim/engine";
@@ -68,10 +68,13 @@ export function AiPanel({
   const [error, setError] = useState("");
 
   async function explain() {
-    if (!impact || !flow) return;
     setBusy("explain");
     setError("");
     try {
+      if (!impact || !flow) {
+        setExplanation(await explainOverview({ topology, protocol, question, articulation_points: critical.articulation.slice(0, 50), bridges: critical.bridges.slice(0, 200) }));
+        return;
+      }
       const timeline = change ? converge(change.before, change.after, { protocol, flow }) : null;
       setExplanation(
         await explainChange({
@@ -145,10 +148,10 @@ export function AiPanel({
       </div>
       <section>
         <h3>Explain</h3>
-        <p className="hint">Explains the change shown in the before/after panel using only the simulator's numbers and timeline.</p>
+        <p className="hint">Explain the current network, or a change shown in the before/after panel.</p>
         <textarea placeholder="Optional question, e.g. why did TTL drop by one?" value={question} maxLength={500} onChange={(event) => setQuestion(event.target.value)} />
-        <button className="primary-button" disabled={!impact || !flow || busy !== ""} onClick={explain}>
-          {busy === "explain" ? "Explaining…" : impact ? `Explain: ${impact.title}` : "Make a change first"}
+        <button className="primary-button" disabled={busy !== ""} onClick={explain}>
+          {busy === "explain" ? "Explaining…" : impact && flow ? `Explain: ${impact.title}` : "Explain current network"}
         </button>
         {explanation && (
           <article className="ai-answer">
